@@ -1,4 +1,4 @@
-package atomic_test
+package wisp_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	"github.com/marcelofabianov/fault"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/marcelofabianov/atomic"
+	wisp "github.com/marcelofabianov/wisp"
 )
 
 const validUUIDString = "7a4a8862-8354-4b53-9b64-42a984a37218"
@@ -23,10 +23,10 @@ func TestUUIDSuite(t *testing.T) {
 
 func (s *UUIDSuite) TestNewUUID_Success() {
 	s.Run("should create a new, non-nil UUID successfully", func() {
-		id, err := atomic.NewUUID()
+		id, err := wisp.NewUUID()
 
 		s.Require().NoError(err)
-		s.Require().NotEqual(atomic.Nil, id)
+		s.Require().NotEqual(wisp.Nil, id)
 		s.Require().False(id.IsNil())
 
 		_, parseErr := uuid.Parse(id.String())
@@ -36,17 +36,17 @@ func (s *UUIDSuite) TestNewUUID_Success() {
 
 func (s *UUIDSuite) TestParseUUID() {
 	s.Run("should parse a valid UUID string successfully", func() {
-		id, err := atomic.ParseUUID(validUUIDString)
+		id, err := wisp.ParseUUID(validUUIDString)
 
 		s.Require().NoError(err)
 		s.Equal(validUUIDString, id.String())
 	})
 
 	s.Run("should return an error for an invalid UUID string", func() {
-		id, err := atomic.ParseUUID("not-a-valid-uuid")
+		id, err := wisp.ParseUUID("not-a-valid-uuid")
 
 		s.Require().Error(err)
-		s.Equal(atomic.Nil, id)
+		s.Equal(wisp.Nil, id)
 
 		faultErr, ok := err.(*fault.Error)
 		s.Require().True(ok, "error should be of type *fault.Error")
@@ -56,50 +56,50 @@ func (s *UUIDSuite) TestParseUUID() {
 
 func (s *UUIDSuite) TestMustParseUUID() {
 	s.Run("should not panic for a valid UUID string", func() {
-		var id atomic.UUID
+		var id wisp.UUID
 		s.NotPanics(func() {
-			id = atomic.MustParseUUID(validUUIDString)
+			id = wisp.MustParseUUID(validUUIDString)
 		})
 		s.Equal(validUUIDString, id.String())
 	})
 
 	s.Run("should panic for an invalid UUID string", func() {
 		s.Panics(func() {
-			atomic.MustParseUUID("not-a-valid-uuid")
+			wisp.MustParseUUID("not-a-valid-uuid")
 		})
 	})
 }
 
 func (s *UUIDSuite) TestUUID_IsNil() {
 	s.Run("should return true for a nil UUID", func() {
-		s.True(atomic.Nil.IsNil())
+		s.True(wisp.Nil.IsNil())
 	})
 
 	s.Run("should return true for a zero-value UUID", func() {
-		var zeroID atomic.UUID
+		var zeroID wisp.UUID
 		s.True(zeroID.IsNil())
 	})
 
 	s.Run("should return false for a non-nil UUID", func() {
-		id := atomic.MustParseUUID(validUUIDString)
+		id := wisp.MustParseUUID(validUUIDString)
 		s.False(id.IsNil())
 	})
 }
 
 func (s *UUIDSuite) TestUUID_String() {
 	s.Run("should return the correct string for a non-nil UUID", func() {
-		id := atomic.MustParseUUID(validUUIDString)
+		id := wisp.MustParseUUID(validUUIDString)
 		s.Equal(validUUIDString, id.String())
 	})
 
 	s.Run("should return the nil UUID string for a nil UUID", func() {
-		s.Equal(nilUUIDString, atomic.Nil.String())
+		s.Equal(nilUUIDString, wisp.Nil.String())
 	})
 }
 
 func (s *UUIDSuite) TestUUID_MarshalText() {
 	s.Run("should marshal a valid UUID to text", func() {
-		id := atomic.MustParseUUID(validUUIDString)
+		id := wisp.MustParseUUID(validUUIDString)
 		text, err := id.MarshalText()
 
 		s.Require().NoError(err)
@@ -107,7 +107,7 @@ func (s *UUIDSuite) TestUUID_MarshalText() {
 	})
 
 	s.Run("should marshal a nil UUID to text", func() {
-		text, err := atomic.Nil.MarshalText()
+		text, err := wisp.Nil.MarshalText()
 
 		s.Require().NoError(err)
 		s.Equal([]byte(nilUUIDString), text)
@@ -116,7 +116,7 @@ func (s *UUIDSuite) TestUUID_MarshalText() {
 
 func (s *UUIDSuite) TestUUID_UnmarshalText() {
 	s.Run("should unmarshal a valid text into a UUID", func() {
-		var id atomic.UUID
+		var id wisp.UUID
 		err := id.UnmarshalText([]byte(validUUIDString))
 
 		s.Require().NoError(err)
@@ -124,7 +124,7 @@ func (s *UUIDSuite) TestUUID_UnmarshalText() {
 	})
 
 	s.Run("should return an error for invalid text", func() {
-		var id atomic.UUID
+		var id wisp.UUID
 		err := id.UnmarshalText([]byte("invalid-text"))
 
 		s.Require().Error(err)
@@ -136,7 +136,7 @@ func (s *UUIDSuite) TestUUID_UnmarshalText() {
 
 func (s *UUIDSuite) TestUUID_Value() {
 	s.Run("should return a string value for a valid UUID", func() {
-		id := atomic.MustParseUUID(validUUIDString)
+		id := wisp.MustParseUUID(validUUIDString)
 		val, err := id.Value()
 
 		s.Require().NoError(err)
@@ -144,7 +144,7 @@ func (s *UUIDSuite) TestUUID_Value() {
 	})
 
 	s.Run("should return nil for a nil UUID", func() {
-		val, err := atomic.Nil.Value()
+		val, err := wisp.Nil.Value()
 
 		s.Require().NoError(err)
 		s.Nil(val)
@@ -192,7 +192,7 @@ func (s *UUIDSuite) TestUUID_Scan() {
 
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
-			var id atomic.UUID
+			var id wisp.UUID
 			err := id.Scan(tc.src)
 
 			if tc.wantErr {

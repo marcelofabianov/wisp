@@ -1,11 +1,11 @@
-package atomic_test
+package wisp_test
 
 import (
 	"encoding/json"
 	"testing"
 	"time"
 
-	"github.com/marcelofabianov/atomic"
+	wisp "github.com/marcelofabianov/wisp"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -19,13 +19,13 @@ func TestAuditTimeSuite(t *testing.T) {
 
 func (s *AuditTimeSuite) TestCreatedAt() {
 	s.Run("should create a non-zero timestamp", func() {
-		ca := atomic.NewCreatedAt()
+		ca := wisp.NewCreatedAt()
 		s.False(ca.Time().IsZero())
 	})
 
 	s.Run("should marshal and unmarshal correctly", func() {
 		now := time.Now().UTC().Truncate(time.Second)
-		ca := atomic.CreatedAt(now)
+		ca := wisp.CreatedAt(now)
 
 		data, err := json.Marshal(ca)
 		s.Require().NoError(err)
@@ -33,7 +33,7 @@ func (s *AuditTimeSuite) TestCreatedAt() {
 		expectedData, _ := json.Marshal(now)
 		s.JSONEq(string(expectedData), string(data))
 
-		var unmarshaledCA atomic.CreatedAt
+		var unmarshaledCA wisp.CreatedAt
 		err = json.Unmarshal(data, &unmarshaledCA)
 		s.Require().NoError(err)
 		s.Equal(ca, unmarshaledCA)
@@ -41,13 +41,13 @@ func (s *AuditTimeSuite) TestCreatedAt() {
 
 	s.Run("should handle database Value and Scan", func() {
 		now := time.Now().UTC().Truncate(time.Second)
-		ca := atomic.CreatedAt(now)
+		ca := wisp.CreatedAt(now)
 
 		val, err := ca.Value()
 		s.Require().NoError(err)
 		s.Equal(now, val)
 
-		var scannedCA atomic.CreatedAt
+		var scannedCA wisp.CreatedAt
 		err = scannedCA.Scan(now)
 		s.Require().NoError(err)
 		s.Equal(ca, scannedCA)
@@ -56,12 +56,12 @@ func (s *AuditTimeSuite) TestCreatedAt() {
 
 func (s *AuditTimeSuite) TestUpdatedAt() {
 	s.Run("should create a non-zero timestamp", func() {
-		ua := atomic.NewUpdatedAt()
+		ua := wisp.NewUpdatedAt()
 		s.False(ua.Time().IsZero())
 	})
 
 	s.Run("Touch method should update the time", func() {
-		ua := atomic.NewUpdatedAt()
+		ua := wisp.NewUpdatedAt()
 		originalTime := ua.Time()
 		time.Sleep(10 * time.Millisecond) // Ensure time moves forward
 		ua.Touch()
@@ -70,7 +70,7 @@ func (s *AuditTimeSuite) TestUpdatedAt() {
 
 	s.Run("should marshal and unmarshal correctly", func() {
 		now := time.Now().UTC().Truncate(time.Second)
-		ua := atomic.UpdatedAt(now)
+		ua := wisp.UpdatedAt(now)
 
 		data, err := json.Marshal(ua)
 		s.Require().NoError(err)
@@ -78,7 +78,7 @@ func (s *AuditTimeSuite) TestUpdatedAt() {
 		expectedData, _ := json.Marshal(now)
 		s.JSONEq(string(expectedData), string(data))
 
-		var unmarshaledUA atomic.UpdatedAt
+		var unmarshaledUA wisp.UpdatedAt
 		err = json.Unmarshal(data, &unmarshaledUA)
 		s.Require().NoError(err)
 		s.Equal(ua, unmarshaledUA)
@@ -86,13 +86,13 @@ func (s *AuditTimeSuite) TestUpdatedAt() {
 
 	s.Run("should handle database Value and Scan", func() {
 		now := time.Now().UTC().Truncate(time.Second)
-		ua := atomic.UpdatedAt(now)
+		ua := wisp.UpdatedAt(now)
 
 		val, err := ua.Value()
 		s.Require().NoError(err)
 		s.Equal(now, val)
 
-		var scannedUA atomic.UpdatedAt
+		var scannedUA wisp.UpdatedAt
 		err = scannedUA.Scan(now)
 		s.Require().NoError(err)
 		s.Equal(ua, scannedUA)

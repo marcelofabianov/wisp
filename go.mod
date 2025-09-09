@@ -1,4 +1,4 @@
-module github.com/marcelofabianov/atomic
+module github.com/marcelofabianov/wisp
 
 go 1.25.0
 

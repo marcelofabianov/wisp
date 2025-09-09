@@ -1,4 +1,4 @@
-package atomic
+package wisp
 
 import (
 	"database/sql/driver"
@@ -18,7 +18,7 @@ func NewUUID() (UUID, error) {
 		return Nil, fault.Wrap(err,
 			"failed to generate v7 UUID",
 			fault.WithCode(fault.Internal),
-			fault.WithContext("operation", "atomic.NewUUID"),
+			fault.WithContext("operation", "wisp.NewUUID"),
 		)
 	}
 	return UUID(id), nil
@@ -39,7 +39,7 @@ func ParseUUID(s string) (UUID, error) {
 			"failed to parse UUID string",
 			fault.WithCode(fault.Invalid),
 			fault.WithContext("input", s),
-			fault.WithContext("operation", "atomic.ParseUUID"),
+			fault.WithContext("operation", "wisp.ParseUUID"),
 		)
 	}
 	return UUID(id), nil
@@ -72,7 +72,7 @@ func (u *UUID) UnmarshalText(text []byte) error {
 			"invalid text representation for UUID",
 			fault.WithCode(fault.Invalid),
 			fault.WithContext("input_text", string(text)),
-			fault.WithContext("operation", "atomic.UUID.UnmarshalText"),
+			fault.WithContext("operation", "wisp.UUID.UnmarshalText"),
 		)
 	}
 	*u = UUID(underlyingUUID)
@@ -93,7 +93,7 @@ func (u *UUID) Scan(src interface{}) error {
 			"failed to scan database value into UUID",
 			fault.WithCode(fault.Invalid),
 			fault.WithContext("source_type", fmt.Sprintf("%T", src)),
-			fault.WithContext("operation", "atomic.UUID.Scan"),
+			fault.WithContext("operation", "wisp.UUID.Scan"),
 		)
 	}
 	*u = UUID(underlyingUUID)

@@ -1,4 +1,4 @@
-package atomic
+package wisp
 
 type Audit struct {
 	CreatedAt  CreatedAt    `db:"audit_created_at" json:"created_at"`

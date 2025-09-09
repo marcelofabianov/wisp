@@ -1,4 +1,4 @@
-package atomic_test
+package wisp_test
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"github.com/marcelofabianov/fault"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/marcelofabianov/atomic"
+	wisp "github.com/marcelofabianov/wisp"
 )
 
 type CurrencySuite struct {
@@ -22,24 +22,24 @@ func (s *CurrencySuite) TestNewCurrency() {
 	testCases := []struct {
 		name        string
 		input       string
-		expected    atomic.Currency
+		expected    wisp.Currency
 		expectError bool
 	}{
-		{name: "should create a valid uppercase currency", input: "BRL", expected: atomic.BRL},
-		{name: "should create and normalize a lowercase currency", input: "usd", expected: atomic.USD},
-		{name: "should create and normalize a mixed-case currency with spaces", input: "  eUr  ", expected: atomic.EUR},
-		{name: "should handle empty string as EmptyCurrency", input: "", expected: atomic.EmptyCurrency},
-		{name: "should handle blank string as EmptyCurrency", input: "   ", expected: atomic.EmptyCurrency},
+		{name: "should create a valid uppercase currency", input: "BRL", expected: wisp.BRL},
+		{name: "should create and normalize a lowercase currency", input: "usd", expected: wisp.USD},
+		{name: "should create and normalize a mixed-case currency with spaces", input: "  eUr  ", expected: wisp.EUR},
+		{name: "should handle empty string as EmptyCurrency", input: "", expected: wisp.EmptyCurrency},
+		{name: "should handle blank string as EmptyCurrency", input: "   ", expected: wisp.EmptyCurrency},
 		{name: "should fail for an unsupported currency code", input: "JPY", expectError: true},
 		{name: "should fail for an invalid string", input: "invalid", expectError: true},
 	}
 
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
-			curr, err := atomic.NewCurrency(tc.input)
+			curr, err := wisp.NewCurrency(tc.input)
 			if tc.expectError {
 				s.Require().Error(err)
-				s.Equal(atomic.EmptyCurrency, curr)
+				s.Equal(wisp.EmptyCurrency, curr)
 				faultErr, ok := err.(*fault.Error)
 				s.Require().True(ok)
 				s.Equal(fault.Invalid, faultErr.Code)
@@ -53,48 +53,48 @@ func (s *CurrencySuite) TestNewCurrency() {
 
 func (s *CurrencySuite) TestCurrency_IsValidAndZero() {
 	s.Run("should correctly validate currency codes", func() {
-		s.True(atomic.BRL.IsValid())
-		s.True(atomic.USD.IsValid())
-		s.True(atomic.EUR.IsValid())
-		s.False(atomic.EmptyCurrency.IsValid())
-		s.False(atomic.Currency("XYZ").IsValid())
+		s.True(wisp.BRL.IsValid())
+		s.True(wisp.USD.IsValid())
+		s.True(wisp.EUR.IsValid())
+		s.False(wisp.EmptyCurrency.IsValid())
+		s.False(wisp.Currency("XYZ").IsValid())
 	})
 
 	s.Run("should correctly identify zero state", func() {
-		s.True(atomic.EmptyCurrency.IsZero())
-		s.False(atomic.BRL.IsZero())
+		s.True(wisp.EmptyCurrency.IsZero())
+		s.False(wisp.BRL.IsZero())
 	})
 }
 
 func (s *CurrencySuite) TestCurrency_JSONMarshaling() {
 	s.Run("should marshal and unmarshal a valid currency", func() {
-		curr := atomic.USD
+		curr := wisp.USD
 		data, err := json.Marshal(curr)
 		s.Require().NoError(err)
 		s.Equal(`"USD"`, string(data))
 
-		var unmarshaledCurr atomic.Currency
+		var unmarshaledCurr wisp.Currency
 		err = json.Unmarshal(data, &unmarshaledCurr)
 		s.Require().NoError(err)
 		s.Equal(curr, unmarshaledCurr)
 	})
 
 	s.Run("should unmarshal null as EmptyCurrency", func() {
-		var curr atomic.Currency
+		var curr wisp.Currency
 		err := json.Unmarshal([]byte("null"), &curr)
 		s.Require().NoError(err)
 		s.True(curr.IsZero())
 	})
 
 	s.Run("should unmarshal empty json string as EmptyCurrency", func() {
-		var curr atomic.Currency
+		var curr wisp.Currency
 		err := json.Unmarshal([]byte(`""`), &curr)
 		s.Require().NoError(err)
 		s.True(curr.IsZero())
 	})
 
 	s.Run("should fail to unmarshal an invalid currency code", func() {
-		var curr atomic.Currency
+		var curr wisp.Currency
 		err := json.Unmarshal([]byte(`"XYZ"`), &curr)
 		s.Require().Error(err)
 		faultErr, ok := err.(*fault.Error)
@@ -105,11 +105,11 @@ func (s *CurrencySuite) TestCurrency_JSONMarshaling() {
 
 func (s *CurrencySuite) TestCurrency_DatabaseInterface() {
 	s.Run("Value", func() {
-		val, err := atomic.EUR.Value()
+		val, err := wisp.EUR.Value()
 		s.Require().NoError(err)
 		s.Equal("EUR", val)
 
-		nilVal, err := atomic.EmptyCurrency.Value()
+		nilVal, err := wisp.EmptyCurrency.Value()
 		s.Require().NoError(err)
 		s.Nil(nilVal)
 	})
@@ -118,20 +118,20 @@ func (s *CurrencySuite) TestCurrency_DatabaseInterface() {
 		testCases := []struct {
 			name        string
 			src         interface{}
-			expected    atomic.Currency
+			expected    wisp.Currency
 			expectError bool
 		}{
-			{name: "should scan a valid string", src: "BRL", expected: atomic.BRL},
-			{name: "should scan and normalize a lowercase string", src: "usd", expected: atomic.USD},
-			{name: "should scan a valid byte slice", src: []byte("EUR"), expected: atomic.EUR},
-			{name: "should scan nil as EmptyCurrency", src: nil, expected: atomic.EmptyCurrency},
+			{name: "should scan a valid string", src: "BRL", expected: wisp.BRL},
+			{name: "should scan and normalize a lowercase string", src: "usd", expected: wisp.USD},
+			{name: "should scan a valid byte slice", src: []byte("EUR"), expected: wisp.EUR},
+			{name: "should scan nil as EmptyCurrency", src: nil, expected: wisp.EmptyCurrency},
 			{name: "should fail to scan an invalid code", src: "JPY", expectError: true},
 			{name: "should fail to scan an incompatible type", src: 123, expectError: true},
 		}
 
 		for _, tc := range testCases {
 			s.Run(tc.name, func() {
-				var curr atomic.Currency
+				var curr wisp.Currency
 				err := curr.Scan(tc.src)
 
 				if tc.expectError {

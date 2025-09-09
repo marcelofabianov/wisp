@@ -1,11 +1,11 @@
-package atomic_test
+package wisp_test
 
 import (
 	"encoding/json"
 	"testing"
 
-	"github.com/marcelofabianov/atomic"
 	"github.com/marcelofabianov/fault"
+	wisp "github.com/marcelofabianov/wisp"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -21,22 +21,22 @@ func (s *AuditUserSuite) TestNewAuditUser() {
 	testCases := []struct {
 		name        string
 		input       string
-		expected    atomic.AuditUser
+		expected    wisp.AuditUser
 		expectError bool
 	}{
 		{name: "should create a valid user from an email", input: "test@example.com", expected: "test@example.com"},
-		{name: "should create a valid user from 'system' literal", input: "system", expected: atomic.SystemAuditUser},
-		{name: "should create and normalize from 'SYSTEM' literal", input: " SYSTEM ", expected: atomic.SystemAuditUser},
-		{name: "should create an empty user from an empty string", input: "", expected: atomic.EmptyAuditUser},
+		{name: "should create a valid user from 'system' literal", input: "system", expected: wisp.SystemAuditUser},
+		{name: "should create and normalize from 'SYSTEM' literal", input: " SYSTEM ", expected: wisp.SystemAuditUser},
+		{name: "should create an empty user from an empty string", input: "", expected: wisp.EmptyAuditUser},
 		{name: "should fail for an invalid string that is not an email", input: "some_user", expectError: true},
 	}
 
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
-			user, err := atomic.NewAuditUser(tc.input)
+			user, err := wisp.NewAuditUser(tc.input)
 			if tc.expectError {
 				s.Require().Error(err)
-				s.Equal(atomic.EmptyAuditUser, user)
+				s.Equal(wisp.EmptyAuditUser, user)
 				faultErr, ok := err.(*fault.Error)
 				s.Require().True(ok)
 				s.Equal(fault.Invalid, faultErr.Code)
@@ -49,9 +49,9 @@ func (s *AuditUserSuite) TestNewAuditUser() {
 }
 
 func (s *AuditUserSuite) TestAuditUser_Methods() {
-	emailUser, _ := atomic.NewAuditUser("test@example.com")
-	systemUser, _ := atomic.NewAuditUser("system")
-	emptyUser := atomic.EmptyAuditUser
+	emailUser, _ := wisp.NewAuditUser("test@example.com")
+	systemUser, _ := wisp.NewAuditUser("system")
+	emptyUser := wisp.EmptyAuditUser
 
 	s.Run("State Checks", func() {
 		s.True(emailUser.IsEmail())
@@ -70,7 +70,7 @@ func (s *AuditUserSuite) TestAuditUser_Methods() {
 	s.Run("Email", func() {
 		email, ok := emailUser.Email()
 		s.True(ok)
-		s.Equal(atomic.Email("test@example.com"), email)
+		s.Equal(wisp.Email("test@example.com"), email)
 
 		_, ok = systemUser.Email()
 		s.False(ok)
@@ -82,19 +82,19 @@ func (s *AuditUserSuite) TestAuditUser_Methods() {
 
 func (s *AuditUserSuite) TestAuditUser_JSONMarshaling() {
 	s.Run("should marshal and unmarshal a valid user email", func() {
-		user, _ := atomic.NewAuditUser("test@example.com")
+		user, _ := wisp.NewAuditUser("test@example.com")
 		data, err := json.Marshal(user)
 		s.Require().NoError(err)
 		s.Equal(`"test@example.com"`, string(data))
 
-		var unmarshaledUser atomic.AuditUser
+		var unmarshaledUser wisp.AuditUser
 		err = json.Unmarshal(data, &unmarshaledUser)
 		s.Require().NoError(err)
 		s.Equal(user, unmarshaledUser)
 	})
 
 	s.Run("should fail to unmarshal an invalid user string", func() {
-		var user atomic.AuditUser
+		var user wisp.AuditUser
 		err := json.Unmarshal([]byte(`"invalid-user"`), &user)
 		s.Require().Error(err)
 	})
@@ -102,21 +102,21 @@ func (s *AuditUserSuite) TestAuditUser_JSONMarshaling() {
 
 func (s *AuditUserSuite) TestAuditUser_DatabaseInterface() {
 	s.Run("Value", func() {
-		systemUser, _ := atomic.NewAuditUser("system")
+		systemUser, _ := wisp.NewAuditUser("system")
 		val, err := systemUser.Value()
 		s.Require().NoError(err)
 		s.Equal("system", val)
 
-		nilVal, err := atomic.EmptyAuditUser.Value()
+		nilVal, err := wisp.EmptyAuditUser.Value()
 		s.Require().NoError(err)
 		s.Nil(nilVal)
 	})
 
 	s.Run("Scan", func() {
-		var user atomic.AuditUser
+		var user wisp.AuditUser
 		err := user.Scan("test@example.com")
 		s.Require().NoError(err)
-		s.Equal(atomic.AuditUser("test@example.com"), user)
+		s.Equal(wisp.AuditUser("test@example.com"), user)
 
 		err = user.Scan(nil)
 		s.Require().NoError(err)

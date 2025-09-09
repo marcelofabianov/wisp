@@ -1,4 +1,4 @@
-package atomic
+package wisp
 
 import (
 	"database/sql/driver"

@@ -1,4 +1,4 @@
-package atomic_test
+package wisp_test
 
 import (
 	"strings"
@@ -7,7 +7,7 @@ import (
 	"github.com/marcelofabianov/fault"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/marcelofabianov/atomic"
+	wisp "github.com/marcelofabianov/wisp"
 )
 
 type EmailSuite struct {
@@ -22,7 +22,7 @@ func (s *EmailSuite) TestNewEmail() {
 	testCases := []struct {
 		name          string
 		input         string
-		expectedEmail atomic.Email
+		expectedEmail wisp.Email
 		expectError   bool
 		expectedCode  fault.Code
 	}{
@@ -84,11 +84,11 @@ func (s *EmailSuite) TestNewEmail() {
 
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
-			email, err := atomic.NewEmail(tc.input)
+			email, err := wisp.NewEmail(tc.input)
 
 			if tc.expectError {
 				s.Require().Error(err)
-				s.Equal(atomic.EmptyEmail, email)
+				s.Equal(wisp.EmptyEmail, email)
 				faultErr, ok := err.(*fault.Error)
 				s.Require().True(ok, "error should be of type *fault.Error")
 				s.Equal(tc.expectedCode, faultErr.Code)
@@ -102,47 +102,47 @@ func (s *EmailSuite) TestNewEmail() {
 
 func (s *EmailSuite) TestMustNewEmail() {
 	s.Run("should not panic for a valid email", func() {
-		var email atomic.Email
+		var email wisp.Email
 		s.NotPanics(func() {
-			email = atomic.MustNewEmail("test@example.com")
+			email = wisp.MustNewEmail("test@example.com")
 		})
-		s.Equal(atomic.Email("test@example.com"), email)
+		s.Equal(wisp.Email("test@example.com"), email)
 	})
 
 	s.Run("should panic for an invalid email", func() {
 		s.Panics(func() {
-			atomic.MustNewEmail("not-a-valid-email")
+			wisp.MustNewEmail("not-a-valid-email")
 		})
 	})
 }
 
 func (s *EmailSuite) TestEmail_IsEmptyAndString() {
 	s.Run("should correctly report empty status", func() {
-		email := atomic.MustNewEmail("test@example.com")
+		email := wisp.MustNewEmail("test@example.com")
 		s.False(email.IsEmpty())
 		s.Equal("test@example.com", email.String())
 
-		s.True(atomic.EmptyEmail.IsEmpty())
-		s.Equal("", atomic.EmptyEmail.String())
+		s.True(wisp.EmptyEmail.IsEmpty())
+		s.Equal("", wisp.EmptyEmail.String())
 	})
 }
 
 func (s *EmailSuite) TestEmail_JSONMarshaling() {
 	s.Run("should correctly marshal and unmarshal valid email", func() {
-		email := atomic.MustNewEmail("user@domain.com")
+		email := wisp.MustNewEmail("user@domain.com")
 
 		jsonData, err := email.MarshalJSON()
 		s.Require().NoError(err)
 		s.Equal(`"user@domain.com"`, string(jsonData))
 
-		var unmarshaledEmail atomic.Email
+		var unmarshaledEmail wisp.Email
 		err = unmarshaledEmail.UnmarshalJSON(jsonData)
 		s.Require().NoError(err)
 		s.Equal(email, unmarshaledEmail)
 	})
 
 	s.Run("should return error when unmarshaling invalid JSON", func() {
-		var email atomic.Email
+		var email wisp.Email
 		err := email.UnmarshalJSON([]byte(`not-a-string`))
 		s.Require().Error(err)
 		faultErr, ok := err.(*fault.Error)
@@ -151,7 +151,7 @@ func (s *EmailSuite) TestEmail_JSONMarshaling() {
 	})
 
 	s.Run("should return error when unmarshaling invalid email format from JSON", func() {
-		var email atomic.Email
+		var email wisp.Email
 		err := email.UnmarshalJSON([]byte(`"invalid-email-format"`))
 		s.Require().Error(err)
 		faultErr, ok := err.(*fault.Error)
@@ -162,20 +162,20 @@ func (s *EmailSuite) TestEmail_JSONMarshaling() {
 
 func (s *EmailSuite) TestEmail_TextMarshaling() {
 	s.Run("should correctly marshal and unmarshal valid email", func() {
-		email := atomic.MustNewEmail("user@domain.com")
+		email := wisp.MustNewEmail("user@domain.com")
 
 		textData, err := email.MarshalText()
 		s.Require().NoError(err)
 		s.Equal("user@domain.com", string(textData))
 
-		var unmarshaledEmail atomic.Email
+		var unmarshaledEmail wisp.Email
 		err = unmarshaledEmail.UnmarshalText(textData)
 		s.Require().NoError(err)
 		s.Equal(email, unmarshaledEmail)
 	})
 
 	s.Run("should return error when unmarshaling invalid email format from text", func() {
-		var email atomic.Email
+		var email wisp.Email
 		err := email.UnmarshalText([]byte("invalid-email-format"))
 		s.Require().Error(err)
 	})
@@ -183,14 +183,14 @@ func (s *EmailSuite) TestEmail_TextMarshaling() {
 
 func (s *EmailSuite) TestEmail_Value() {
 	s.Run("should return string for a valid email", func() {
-		email := atomic.MustNewEmail("test@example.com")
+		email := wisp.MustNewEmail("test@example.com")
 		val, err := email.Value()
 		s.Require().NoError(err)
 		s.Equal("test@example.com", val)
 	})
 
 	s.Run("should return nil for an empty email", func() {
-		val, err := atomic.EmptyEmail.Value()
+		val, err := wisp.EmptyEmail.Value()
 		s.Require().NoError(err)
 		s.Nil(val)
 	})
@@ -200,7 +200,7 @@ func (s *EmailSuite) TestEmail_Scan() {
 	testCases := []struct {
 		name        string
 		src         interface{}
-		expected    atomic.Email
+		expected    wisp.Email
 		expectError bool
 	}{
 		{
@@ -216,7 +216,7 @@ func (s *EmailSuite) TestEmail_Scan() {
 		{
 			name:     "should scan nil into an empty email",
 			src:      nil,
-			expected: atomic.EmptyEmail,
+			expected: wisp.EmptyEmail,
 		},
 		{
 			name:        "should fail to scan an invalid string",
@@ -232,7 +232,7 @@ func (s *EmailSuite) TestEmail_Scan() {
 
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
-			var email atomic.Email
+			var email wisp.Email
 			err := email.Scan(tc.src)
 
 			if tc.expectError {

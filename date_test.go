@@ -1,12 +1,12 @@
-package atomic_test
+package wisp_test
 
 import (
 	"encoding/json"
 	"testing"
 	"time"
 
-	"github.com/marcelofabianov/atomic"
 	"github.com/marcelofabianov/fault"
+	wisp "github.com/marcelofabianov/wisp"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -20,7 +20,7 @@ func TestDateSuite(t *testing.T) {
 
 func (s *DateSuite) TestNewDateAndParse() {
 	s.Run("should create a valid date", func() {
-		d, err := atomic.NewDate(2025, time.September, 9)
+		d, err := wisp.NewDate(2025, time.September, 9)
 		s.Require().NoError(err)
 		s.Equal(2025, d.Year())
 		s.Equal(time.September, d.Month())
@@ -29,7 +29,7 @@ func (s *DateSuite) TestNewDateAndParse() {
 	})
 
 	s.Run("should fail for an invalid date", func() {
-		_, err := atomic.NewDate(2025, time.February, 30)
+		_, err := wisp.NewDate(2025, time.February, 30)
 		s.Require().Error(err)
 		faultErr, ok := err.(*fault.Error)
 		s.Require().True(ok)
@@ -37,22 +37,22 @@ func (s *DateSuite) TestNewDateAndParse() {
 	})
 
 	s.Run("should parse a valid date string", func() {
-		d, err := atomic.ParseDate("2025-09-09")
+		d, err := wisp.ParseDate("2025-09-09")
 		s.Require().NoError(err)
-		expected, _ := atomic.NewDate(2025, time.September, 9)
+		expected, _ := wisp.NewDate(2025, time.September, 9)
 		s.True(d.Equals(expected))
 	})
 
 	s.Run("should fail to parse an invalid date string", func() {
-		_, err := atomic.ParseDate("09-09-2025")
+		_, err := wisp.ParseDate("09-09-2025")
 		s.Require().Error(err)
 	})
 }
 
 func (s *DateSuite) TestDate_ComparisonAndManipulation() {
-	d1, _ := atomic.NewDate(2025, time.January, 10)
-	d2, _ := atomic.NewDate(2025, time.January, 20)
-	d1Clone, _ := atomic.NewDate(2025, time.January, 10)
+	d1, _ := wisp.NewDate(2025, time.January, 10)
+	d2, _ := wisp.NewDate(2025, time.January, 20)
+	d1Clone, _ := wisp.NewDate(2025, time.January, 10)
 
 	s.Run("Comparison", func() {
 		s.True(d1.Equals(d1Clone))
@@ -69,25 +69,25 @@ func (s *DateSuite) TestDate_ComparisonAndManipulation() {
 }
 
 func (s *DateSuite) TestDate_JSONMarshaling() {
-	d, _ := atomic.NewDate(2025, time.September, 9)
+	d, _ := wisp.NewDate(2025, time.September, 9)
 
 	s.Run("should marshal and unmarshal correctly", func() {
 		data, err := json.Marshal(d)
 		s.Require().NoError(err)
 		s.Equal(`"2025-09-09"`, string(data))
 
-		var unmarshaledDate atomic.Date
+		var unmarshaledDate wisp.Date
 		err = json.Unmarshal(data, &unmarshaledDate)
 		s.Require().NoError(err)
 		s.True(d.Equals(unmarshaledDate))
 	})
 
 	s.Run("should handle zero and null values", func() {
-		data, err := json.Marshal(atomic.ZeroDate)
+		data, err := json.Marshal(wisp.ZeroDate)
 		s.Require().NoError(err)
 		s.Equal("null", string(data))
 
-		var unmarshaledDate atomic.Date
+		var unmarshaledDate wisp.Date
 		err = json.Unmarshal([]byte("null"), &unmarshaledDate)
 		s.Require().NoError(err)
 		s.True(unmarshaledDate.IsZero())
@@ -95,7 +95,7 @@ func (s *DateSuite) TestDate_JSONMarshaling() {
 }
 
 func (s *DateSuite) TestDate_DatabaseInterface() {
-	d, _ := atomic.NewDate(2025, time.September, 9)
+	d, _ := wisp.NewDate(2025, time.September, 9)
 
 	s.Run("Value", func() {
 		val, err := d.Value()
@@ -110,7 +110,7 @@ func (s *DateSuite) TestDate_DatabaseInterface() {
 	})
 
 	s.Run("Scan", func() {
-		var scannedDate atomic.Date
+		var scannedDate wisp.Date
 		// Simulate the database returning a time.Time
 		dbTime := time.Date(2025, 9, 9, 15, 30, 0, 0, time.Local)
 		err := scannedDate.Scan(dbTime)
@@ -119,7 +119,7 @@ func (s *DateSuite) TestDate_DatabaseInterface() {
 	})
 
 	s.Run("should handle nil from database", func() {
-		var scannedDate atomic.Date
+		var scannedDate wisp.Date
 		err := scannedDate.Scan(nil)
 		s.Require().NoError(err)
 		s.True(scannedDate.IsZero())

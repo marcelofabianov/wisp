@@ -1,4 +1,4 @@
-package atomic_test
+package wisp_test
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/marcelofabianov/atomic"
+	wisp "github.com/marcelofabianov/wisp"
 )
 
 type NullableTimeSuite struct {
@@ -21,14 +21,14 @@ func TestNullableTimeSuite(t *testing.T) {
 func (s *NullableTimeSuite) TestNewNullableTime() {
 	s.Run("should create a valid NullableTime from a non-zero time", func() {
 		now := time.Now()
-		nt := atomic.NewNullableTime(now)
+		nt := wisp.NewNullableTime(now)
 		s.True(nt.Valid)
 		s.Equal(now, nt.Time)
 		s.False(nt.IsZero())
 	})
 
 	s.Run("should create an invalid NullableTime from a zero time", func() {
-		nt := atomic.NewNullableTime(time.Time{})
+		nt := wisp.NewNullableTime(time.Time{})
 		s.False(nt.Valid)
 		s.True(nt.IsZero())
 	})
@@ -37,7 +37,7 @@ func (s *NullableTimeSuite) TestNewNullableTime() {
 func (s *NullableTimeSuite) TestNullableTime_JSONMarshaling() {
 	s.Run("should marshal a valid time to a JSON string", func() {
 		t := time.Date(2025, 9, 9, 12, 30, 0, 0, time.UTC)
-		nt := atomic.NewNullableTime(t)
+		nt := wisp.NewNullableTime(t)
 		data, err := json.Marshal(nt)
 
 		expectedJSON, _ := json.Marshal(t)
@@ -46,7 +46,7 @@ func (s *NullableTimeSuite) TestNullableTime_JSONMarshaling() {
 	})
 
 	s.Run("should marshal an invalid time to JSON null", func() {
-		nt := atomic.EmptyNullableTime
+		nt := wisp.EmptyNullableTime
 		data, err := json.Marshal(nt)
 		s.Require().NoError(err)
 		s.Equal("null", string(data))
@@ -54,17 +54,17 @@ func (s *NullableTimeSuite) TestNullableTime_JSONMarshaling() {
 
 	s.Run("should unmarshal a time string correctly", func() {
 		t := time.Date(2025, 9, 9, 12, 30, 0, 0, time.UTC)
-		expectedNT := atomic.NewNullableTime(t)
+		expectedNT := wisp.NewNullableTime(t)
 		jsonTime, _ := json.Marshal(t)
 
-		var nt atomic.NullableTime
+		var nt wisp.NullableTime
 		err := json.Unmarshal(jsonTime, &nt)
 		s.Require().NoError(err)
 		s.Equal(expectedNT, nt)
 	})
 
 	s.Run("should unmarshal null correctly", func() {
-		var nt atomic.NullableTime
+		var nt wisp.NullableTime
 		err := json.Unmarshal([]byte("null"), &nt)
 		s.Require().NoError(err)
 		s.False(nt.Valid)
@@ -75,12 +75,12 @@ func (s *NullableTimeSuite) TestNullableTime_JSONMarshaling() {
 func (s *NullableTimeSuite) TestNullableTime_DatabaseInterface() {
 	s.Run("Value", func() {
 		now := time.Now()
-		ntValid := atomic.NewNullableTime(now)
+		ntValid := wisp.NewNullableTime(now)
 		val, err := ntValid.Value()
 		s.Require().NoError(err)
 		s.Equal(now, val)
 
-		ntInvalid := atomic.EmptyNullableTime
+		ntInvalid := wisp.EmptyNullableTime
 		nilVal, err := ntInvalid.Value()
 		s.Require().NoError(err)
 		s.Nil(nilVal)
@@ -88,7 +88,7 @@ func (s *NullableTimeSuite) TestNullableTime_DatabaseInterface() {
 
 	s.Run("Scan", func() {
 		now := time.Now()
-		var nt atomic.NullableTime
+		var nt wisp.NullableTime
 
 		err := nt.Scan(now)
 		s.Require().NoError(err)
