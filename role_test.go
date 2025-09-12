@@ -21,32 +21,54 @@ func (s *RoleSuite) SetupTest() {
 }
 
 func (s *RoleSuite) TestRegisterAndValidateRoles() {
-	s.Run("should return false for an unregistered role", func() {
-		s.False(wisp.Role("ADMIN").IsValid())
-	})
+	const (
+		RoleAdmin wisp.Role = "ADMIN"
+		RoleUser  wisp.Role = "USER"
+	)
+	wisp.RegisterRoles(RoleAdmin, RoleUser)
 
-	s.Run("should correctly register and validate new roles", func() {
-		const (
-			RoleAdmin   wisp.Role = "ADMIN"
-			RoleStudent wisp.Role = "STUDENT"
-		)
-
-		wisp.RegisterRoles(RoleAdmin, RoleStudent)
-
-		s.True(RoleAdmin.IsValid())
-		s.True(RoleStudent.IsValid())
-		s.False(wisp.Role("TEACHER").IsValid())
-	})
-
-	s.Run("should normalize roles during registration", func() {
-		wisp.RegisterRoles(wisp.Role("  editor  "), wisp.Role("viewer"))
-
-		s.True(wisp.Role("EDITOR").IsValid())
-		s.True(wisp.Role("VIEWER").IsValid())
-		s.False(wisp.Role("editor").IsValid(), "Validation should be case-sensitive after registration")
-	})
+	s.True(RoleAdmin.IsValid())
+	s.True(wisp.Role("USER").IsValid())
+	s.False(wisp.Role("GUEST").IsValid())
+	s.False(wisp.EmptyRole.IsValid())
 }
 
-func (s *RoleSuite) TestRoleStringer() {
-	s.Equal("ADMIN", wisp.Role("ADMIN").String())
+func (s *RoleSuite) TestNewRole() {
+	wisp.RegisterRoles("ADMIN", "EDITOR")
+
+	testCases := []struct {
+		name        string
+		input       string
+		expected    wisp.Role
+		expectError bool
+	}{
+		{name: "should create a valid role", input: "ADMIN", expected: "ADMIN"},
+		{name: "should create and normalize a valid role", input: "  editor  ", expected: "EDITOR"},
+		{name: "should create an empty role from an empty string", input: "", expected: wisp.EmptyRole},
+		{name: "should create an empty role from a blank string", input: "   ", expected: wisp.EmptyRole},
+		{name: "should fail for an unregistered role", input: "GUEST", expectError: true},
+	}
+
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			role, err := wisp.NewRole(tc.input)
+			if tc.expectError {
+				s.Require().Error(err)
+				s.True(role.IsZero())
+			} else {
+				s.Require().NoError(err)
+				s.Equal(tc.expected, role)
+			}
+		})
+	}
+}
+
+func (s *RoleSuite) TestRole_IsZero() {
+	wisp.RegisterRoles("ADMIN")
+
+	adminRole, err := wisp.NewRole("ADMIN")
+	s.Require().NoError(err, "NewRole should succeed for a registered role")
+
+	s.False(adminRole.IsZero())
+	s.True(wisp.EmptyRole.IsZero())
 }
