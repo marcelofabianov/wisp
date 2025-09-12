@@ -81,6 +81,7 @@ func (s *PreferencesSuite) TestPreferences_Immutability() {
 	theme, ok := prefs2.Get("theme")
 	s.True(ok)
 	s.Equal("dark", theme)
+	s.Equal("pt-br", lang)
 }
 
 func (s *PreferencesSuite) TestPreferences_JSON_SQL() {
