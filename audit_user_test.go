@@ -5,8 +5,9 @@ import (
 	"testing"
 
 	"github.com/marcelofabianov/fault"
-	wisp "github.com/marcelofabianov/wisp"
 	"github.com/stretchr/testify/suite"
+
+	wisp "github.com/marcelofabianov/wisp"
 )
 
 type AuditUserSuite struct {
@@ -15,6 +16,14 @@ type AuditUserSuite struct {
 
 func TestAuditUserSuite(t *testing.T) {
 	suite.Run(t, new(AuditUserSuite))
+}
+
+func (s *AuditUserSuite) TestNewSystemAuditUser() {
+	user := wisp.NewSystemAuditUser()
+	s.Equal(wisp.SystemAuditUser, user)
+	s.True(user.IsSystem())
+	s.False(user.IsZero())
+	s.False(user.IsEmail())
 }
 
 func (s *AuditUserSuite) TestNewAuditUser() {

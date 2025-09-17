@@ -15,6 +15,10 @@ var EmptyAuditUser AuditUser
 
 const SystemAuditUser AuditUser = "system"
 
+func NewSystemAuditUser() AuditUser {
+	return SystemAuditUser
+}
+
 func NewAuditUser(input string) (AuditUser, error) {
 	user := AuditUser(strings.ToLower(strings.TrimSpace(input)))
 
