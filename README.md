@@ -70,10 +70,10 @@ Alguns tipos em wisp são extensíveis. É recomendado configurar os valores pad
 ```go
 func init() {
     // Define a maioridade padrão para 21 anos
-    wisp.SetLegalAge(21)
+    wisp.SetLegalAge(21) // Quando nao definido é 18 anos
 
     // Define a precisão padrão para quantidades
-    wisp.SetDefaultPrecision(4)
+    wisp.SetDefaultPrecision(4) // Quando nao definido é 3 casas decimais para quantidades
 
     // Registra as unidades de medida que seu domínio utilizará
     wisp.RegisterUnits("KG", "UN", "L", "M2", "H")
