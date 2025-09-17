@@ -1,5 +1,7 @@
 # wisp
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/marcelofabianov/wisp)](https://goreportcard.com/report/github.com/marcelofabianov/wisp)
+[![Go Reference](https://pkg.go.dev/badge/github.com/marcelofabianov/wisp.svg)](https://pkg.go.dev/github.com/marcelofabianov/wisp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Um conjunto de *value objects* robustos e imutáveis para Go, projetado para modelagem de domínios complexos com segurança de tipos, com foco em cenários de negócios brasileiros.
@@ -151,9 +153,9 @@ func main() {
 }
 ```
 
-### Exemplo 3: Modelagem de uma Entidade
+**Exemplo 3: Modelagem de uma Entidade**
 
-Este exemplo demonstra como os tipos `wisp` se unem para criar uma entidade `Course` segura e expressiva.
+Este exemplo demonstra como os tipos `wisp` se unem para criar uma entidade `Course` segura e expressiva. O pacote [fault](https://github.com/marcelofabianov/fault) presente no exemplo vem para qualificar nossos erros com contexto.
 
 ```go
 package main
