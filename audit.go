@@ -34,7 +34,29 @@ func (a *Audit) Archive(archivedBy AuditUser) {
 	a.Touch(archivedBy)
 }
 
+func (a *Audit) Unarchive(updatedBy AuditUser) {
+	a.ArchivedAt = NullableTime{}
+	a.Touch(updatedBy)
+}
+
 func (a *Audit) Delete(deletedBy AuditUser) {
 	a.DeletedAt = NewNullableTime(time.Now().UTC())
 	a.Touch(deletedBy)
+}
+
+func (a *Audit) Undelete(updatedBy AuditUser) {
+	a.DeletedAt = NullableTime{}
+	a.Touch(updatedBy)
+}
+
+func (a *Audit) IsArchived() bool {
+	return !a.ArchivedAt.IsZero()
+}
+
+func (a *Audit) IsDeleted() bool {
+	return !a.DeletedAt.IsZero()
+}
+
+func (a *Audit) IsActive() bool {
+	return !a.IsArchived() && !a.IsDeleted()
 }

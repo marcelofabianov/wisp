@@ -70,6 +70,22 @@ func (s *AuditSuite) TestAudit_Archive() {
 	s.Equal(wisp.Version(2), audit.Version, "Version should be incremented on archive")
 }
 
+func (s *AuditSuite) TestAudit_Unarchive() {
+	audit := wisp.NewAudit(s.user1)
+	audit.Archive(s.user2)
+	originalUpdatedAt := audit.UpdatedAt
+	originalVersion := audit.Version
+
+	time.Sleep(10 * time.Millisecond)
+
+	audit.Unarchive(s.system)
+
+	s.True(audit.ArchivedAt.IsZero(), "ArchivedAt should be zeroed out")
+	s.True(audit.UpdatedAt.Time().After(originalUpdatedAt.Time()), "UpdatedAt should be touched on unarchive")
+	s.Equal(s.system, audit.UpdatedBy, "UpdatedBy should be the user who unarchived")
+	s.Equal(originalVersion+1, audit.Version, "Version should be incremented on unarchive")
+}
+
 func (s *AuditSuite) TestAudit_Delete() {
 	audit := wisp.NewAudit(s.user1)
 	originalUpdatedAt := audit.UpdatedAt
@@ -83,4 +99,54 @@ func (s *AuditSuite) TestAudit_Delete() {
 	s.True(audit.UpdatedAt.Time().After(originalUpdatedAt.Time()), "UpdatedAt should be touched on delete")
 	s.Equal(s.system, audit.UpdatedBy, "UpdatedBy should be the user who deleted")
 	s.Equal(wisp.Version(2), audit.Version, "Version should be incremented on delete")
+}
+
+func (s *AuditSuite) TestAudit_Undelete() {
+	audit := wisp.NewAudit(s.user1)
+	audit.Delete(s.user2)
+	originalUpdatedAt := audit.UpdatedAt
+	originalVersion := audit.Version
+
+	time.Sleep(10 * time.Millisecond)
+
+	audit.Undelete(s.system)
+
+	s.True(audit.DeletedAt.IsZero(), "DeletedAt should be zeroed out")
+	s.True(audit.UpdatedAt.Time().After(originalUpdatedAt.Time()), "UpdatedAt should be touched on undelete")
+	s.Equal(s.system, audit.UpdatedBy, "UpdatedBy should be the user who undeleted")
+	s.Equal(originalVersion+1, audit.Version, "Version should be incremented on undelete")
+}
+
+func (s *AuditSuite) TestAudit_States() {
+	activeAudit := wisp.NewAudit(s.user1)
+	archivedAudit := wisp.NewAudit(s.user1)
+	archivedAudit.Archive(s.user2)
+	deletedAudit := wisp.NewAudit(s.user1)
+	deletedAudit.Delete(s.user2)
+	undeletedAudit := wisp.NewAudit(s.user1)
+	undeletedAudit.Delete(s.user2)
+	undeletedAudit.Undelete(s.user1)
+	unarchivedAudit := wisp.NewAudit(s.user1)
+	unarchivedAudit.Archive(s.user2)
+	unarchivedAudit.Unarchive(s.user1)
+
+	s.Run("IsActive", func() {
+		s.True(activeAudit.IsActive())
+		s.False(archivedAudit.IsActive())
+		s.False(deletedAudit.IsActive())
+	})
+
+	s.Run("IsArchived", func() {
+		s.False(activeAudit.IsArchived())
+		s.True(archivedAudit.IsArchived())
+		s.False(deletedAudit.IsArchived())
+		s.False(unarchivedAudit.IsArchived())
+	})
+
+	s.Run("IsDeleted", func() {
+		s.False(activeAudit.IsDeleted())
+		s.False(archivedAudit.IsDeleted())
+		s.True(deletedAudit.IsDeleted())
+		s.False(undeletedAudit.IsDeleted())
+	})
 }
