@@ -24,36 +24,43 @@ Este pacote nasceu da necessidade de combater a "Obsessão Primitiva" (*Primitiv
 | :--- | :--- |
 | **Identificadores** | |
 | `UUID` | Wrapper para `uuid.UUID` (padrão v7) para identificadores únicos. |
+| `NullableUUID` | Um `wisp.UUID` que pode ser nulo, ideal para chaves estrangeiras opcionais. |
 | `CPF` | CPF brasileiro com validação de dígitos verificadores e formatação. |
 | `CNPJ` | CNPJ brasileiro com validação de dígitos verificadores e formatação. |
 | **Financeiro** | |
-| `Currency` | Código de moeda (BRL, USD, EUR) validado a partir de uma lista. |
+| `Currency` | Código de moeda (ex: BRL) validado a partir de uma lista registrável. |
 | `Money` | Representa um valor monetário com segurança, evitando `float64`. |
-| `Percentage` | Tipo de porcentagem preciso, baseado em `int64`, para cálculos financeiros. |
+| `Percentage` | Tipo de porcentagem preciso para cálculos financeiros seguros. |
 | **Quantidades** | |
 | `Unit` | Sistema de registro extensível para unidades de medida (`KG`, `UN`, etc.). |
-| `Quantity`| Valor numérico com unidade de medida, com precisão configurável. |
+| `Quantity`| Valor numérico com unidade de medida e precisão configurável. |
 | **Contato & Endereçamento**| |
-| `Email`| Endereço de e-mail validado via parser da biblioteca padrão. |
+| `Email`| Endereço de e-mail validado. |
 | `Phone`| Telefone brasileiro (fixo ou móvel) com validação e formatação. |
 | `CEP`| CEP brasileiro com validação de formato e formatação. |
-| `UF` | Unidade Federativa brasileira validada a partir de uma lista. |
+| `UF` | Unidade Federativa brasileira validada a partir de uma lista registrável. |
 | **Temporal** | |
 | `Date`| Representa uma data de calendário (YYYY-MM-DD) sem fuso horário. |
 | `DateRange` | Um período entre duas datas, com validação de `start <= end`. |
 | `BirthDate`| Uma data de nascimento que não pode ser no futuro, com cálculos de idade. |
 | `Day` | Um dia do mês (1-31) para eventos recorrentes. |
-| **Auditoria & Técnicos**| |
-| `Version` | Versão numérica para travamento otimista. |
-| `AuditUser`| Identificador de usuário de auditoria (e-mail ou "system"). |
-| `CreatedAt` | Timestamp de criação. |
-| `UpdatedAt` | Timestamp de modificação com método `Touch()`. |
+| `CreatedAt` | Timestamp de criação (não nulo). |
+| `UpdatedAt` | Timestamp de modificação (não nulo) com método `Touch()`. |
 | `NullableTime`| Um `time.Time` que pode ser nulo, para campos como `deleted_at`. |
+| **Auditoria & Domínio** | |
+| `Audit` | Struct embutível com a trilha de auditoria completa. |
+| `AuditUser`| Identificador de usuário de auditoria (e-mail ou "system"). |
+| `Version` | Versão numérica para travamento otimista. |
+| `Role` | Sistema de registro extensível para papéis de usuário (`ADMIN`, etc.). |
+| `Preferences` | Objeto seguro para armazenar dados JSON flexíveis (chave-valor). |
+| **Primitivos Seguros** | |
+| `NonEmptyString` | Uma `string` que garante não ser vazia após remover espaços. |
+| `PositiveInt` | Um `int` que garante ser sempre maior que zero. |
 
 ## Instalação
 
 ```sh
-go get [github.com/marcelofabianov/wisp](https://github.com/marcelofabianov/wisp)
+go get github.com/marcelofabianov/wisp
 ```
 
 ### Configuração do Pacote
@@ -84,7 +91,7 @@ import (
 	"fmt"
 	"log"
 
-	"[github.com/marcelofabianov/wisp](https://github.com/marcelofabianov/wisp)"
+	"github.com/marcelofabianov/wisp"
 )
 
 func main() {
@@ -111,7 +118,7 @@ import (
 	"fmt"
 	"log"
 
-	"[github.com/marcelofabianov/wisp](https://github.com/marcelofabianov/wisp)"
+	"github.com/marcelofabianov/wisp"
 )
 
 // Configuração inicial da aplicação
@@ -141,6 +148,119 @@ func main() {
 	// O resultado é um objeto Money seguro com o arredondamento correto
 	// 1.57 * 10.31 = 16.1867 -> arredonda para R$ 16,19
 	fmt.Println("Preço Total:", total.String()) // Saída: BRL 16.19
+}
+```
+
+### Exemplo 3: Modelagem de uma Entidade
+
+Este exemplo demonstra como os tipos `wisp` se unem para criar uma entidade `Course` segura e expressiva.
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/marcelofabianov/fault"
+	"github.com/marcelofabianov/wisp"
+)
+
+// --- Definições do seu pacote de domínio ---
+
+// NewCourseInput é o DTO.
+type NewCourseInput struct {
+	Name           string
+	Description    string
+	MaxEnrollments int
+	CreatedBy      wisp.AuditUser
+}
+
+// Course é a Entidade de Domínio, protegida por tipos wisp.
+type Course struct {
+	ID             wisp.UUID
+	Name           wisp.NonEmptyString
+	Description    wisp.NonEmptyString
+	MaxEnrollments wisp.PositiveInt
+	wisp.Audit
+}
+
+// NewCourse é a Factory que valida os dados brutos e cria uma entidade segura.
+func NewCourse(input NewCourseInput) (*Course, error) {
+	name, err := wisp.NewNonEmptyString(input.Name)
+	if err != nil {
+		return nil, fault.Wrap(err, "invalid name")
+	}
+	description, err := wisp.NewNonEmptyString(input.Description)
+	if err != nil {
+		return nil, fault.Wrap(err, "invalid description")
+	}
+	maxEnrollments, err := wisp.NewPositiveInt(input.MaxEnrollments)
+	if err != nil {
+		return nil, fault.Wrap(err, "invalid max enrollments")
+	}
+	id, err := wisp.NewUUID()
+	if err != nil {
+		return nil, err
+	}
+	return &Course{
+		ID:             id,
+		Name:           name,
+		Description:    description,
+		MaxEnrollments: maxEnrollments,
+		Audit:          wisp.NewAudit(input.CreatedBy),
+	}, nil
+}
+
+// ChangeName é um método de comportamento que altera o estado e atualiza a auditoria.
+func (c *Course) ChangeName(name wisp.NonEmptyString, updatedBy wisp.AuditUser) {
+	c.Name = name
+	c.Audit.Touch(updatedBy)
+}
+
+// --- Uso prático na aplicação ---
+func main() {
+	creator, _ := wisp.NewAuditUser("admin@example.com")
+	updater, _ := wisp.NewAuditUser("system")
+
+	// 1. Tentativa de criar um curso com dados inválidos
+	inputInvalido := NewCourseInput{
+		Name:           "   Curso de Go   ",
+		Description:    "Um curso focado em boas práticas.",
+		MaxEnrollments: -10, // Inválido!
+		CreatedBy:      creator,
+	}
+
+	fmt.Println("Tentando criar curso com limite de matrícula inválido...")
+	_, err := NewCourse(inputInvalido)
+	if err != nil {
+		fmt.Printf("ERRO: %v\n\n", err) // Saída: ERRO: invalid max enrollments: value must be a positive integer
+	}
+
+	// 2. Criando um curso válido
+	inputValido := inputInvalido
+	inputValido.MaxEnrollments = 50
+
+	fmt.Println("Criando um curso válido...")
+	course, err := NewCourse(inputValido)
+	if err != nil {
+		log.Fatalf("Falha inesperada: %v", err)
+	}
+
+	fmt.Printf("Curso criado com sucesso!\n")
+	fmt.Printf("  ID: %s\n", course.ID)
+	fmt.Printf("  Nome: '%s' (espaços foram removidos)\n", course.Name)
+	fmt.Printf("  Versão inicial: %d\n", course.Audit.Version.Int())
+	fmt.Printf("  Está ativo: %t\n\n", course.Audit.IsActive())
+
+	// 3. Usando um método de comportamento para alterar o nome
+	fmt.Println("Alterando o nome do curso...")
+	newName, _ := wisp.NewNonEmptyString("Introdução ao Go com Domain-Driven Design")
+	course.ChangeName(newName, updater)
+
+	fmt.Printf("Nome alterado para: '%s'\n", course.Name)
+	fmt.Printf("Versão atualizada: %d\n", course.Audit.Version.Int())
+	fmt.Printf("Atualizado por: %s\n", course.Audit.UpdatedBy)
 }
 ```
 
