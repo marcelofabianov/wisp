@@ -17,8 +17,8 @@ Este pacote nasceu da necessidade de combater a "Obsessão Primitiva" (*Primitiv
 * **Segurança de Tipos**: Impede a criação de dados inválidos em tempo de compilação ou na inicialização. Um `wisp.CPF` nunca conterá um valor inválido.
 * **Imutabilidade**: Os objetos `wisp` são imutáveis. Operações que modificam o valor (ex: `Add` em `Money`) retornam uma nova instância, tornando o código seguro para uso em ambientes concorrentes e livre de efeitos colaterais.
 * **Validação Embutida**: Regras complexas, como o cálculo de dígitos verificadores de CPF/CNPJ e a validação de formatos, estão centralizadas e testadas.
-* **API Expressiva**: Métodos como `Formatted()`, `IsMobile()`, `ApplyTo(money)` e `Age()` tornam o código mais legível e explícito sobre sua intenção.
-* **Extensibilidade**: Tipos como `Quantity` e `Unit` permitem que o consumidor do pacote defina suas próprias unidades de medida, adaptando a biblioteca ao seu domínio específico.
+* **API Expressiva**: Métodos como `Formatted()`, `IsMobile()`, `MultiplyByMoney()` e `Age()` tornam o código mais legível e explícito sobre sua intenção.
+* **Extensibilidade**: Tipos como `Unit`, `Role` e `FileExtension` permitem que o consumidor do pacote defina seus próprios conjuntos de valores válidos, adaptando a biblioteca ao seu domínio específico.
 
 ## Tipos Disponíveis
 
@@ -29,25 +29,42 @@ Este pacote nasceu da necessidade de combater a "Obsessão Primitiva" (*Primitiv
 | `NullableUUID` | Um `wisp.UUID` que pode ser nulo, ideal para chaves estrangeiras opcionais. |
 | `CPF` | CPF brasileiro com validação de dígitos verificadores e formatação. |
 | `CNPJ` | CNPJ brasileiro com validação de dígitos verificadores e formatação. |
+| `Slug`| Uma string otimizada e segura para ser usada em URLs. |
 | **Financeiro** | |
 | `Currency` | Código de moeda (ex: BRL) validado a partir de uma lista registrável. |
 | `Money` | Representa um valor monetário com segurança, evitando `float64`. |
 | `Percentage` | Tipo de porcentagem preciso para cálculos financeiros seguros. |
-| **Quantidades** | |
-| `Unit` | Sistema de registro extensível para unidades de medida (`KG`, `UN`, etc.). |
-| `Quantity`| Valor numérico com unidade de medida e precisão configurável. |
+| `Discount` | Objeto polimórfico para descontos (fixos ou percentuais). |
+| **Medidas Físicas** | |
+| `Weight`| Medida de massa com unidades (kg, g, lb) e conversão segura. |
+| `Length`| Medida de comprimento com unidades (m, cm, ft) e conversão segura. |
+| `Quantity`| Valor numérico com unidade de medida extensível e precisão configurável. |
+| `Unit` | Sistema de registro para unidades de medida (`KG`, `UN`, etc.). |
+| **Rede & Formatos**| |
+| `IPAddress`| Endereço de rede IPv4 ou IPv6 validado. |
+| `PortNumber`| Número de porta de rede com validação de intervalo (1-65535). |
+| `FileExtension` | Extensão de arquivo (ex: "pdf") validada contra uma lista registrável. |
+| `MIMEType` | Tipo de mídia (ex: "image/jpeg") validado contra uma lista registrável. |
+| `Color` | Representação e validação de cores no formato hexadecimal. |
 | **Contato & Endereçamento**| |
 | `Email`| Endereço de e-mail validado. |
 | `Phone`| Telefone brasileiro (fixo ou móvel) com validação e formatação. |
 | `CEP`| CEP brasileiro com validação de formato e formatação. |
 | `UF` | Unidade Federativa brasileira validada a partir de uma lista registrável. |
+| **Geolocalização** | |
+| `Longitude`| Coordenada geográfica de longitude, com validação de intervalo (-180 a 180). |
+| `Latitude`| Coordenada geográfica de latitude, com validação de intervalo (-90 a 90). |
 | **Temporal** | |
 | `Date`| Representa uma data de calendário (YYYY-MM-DD) sem fuso horário. |
 | `DateRange` | Um período entre duas datas, com validação de `start <= end`. |
 | `BirthDate`| Uma data de nascimento que não pode ser no futuro, com cálculos de idade. |
 | `Day` | Um dia do mês (1-31) para eventos recorrentes. |
-| `CreatedAt` | Timestamp de criação (não nulo). |
-| `UpdatedAt` | Timestamp de modificação (não nulo) com método `Touch()`. |
+| `DayOfWeek` | Um dia da semana (Domingo, Segunda, etc.) de forma segura. |
+| `TimeOfDay` | Representa uma hora do dia (HH:MM) sem data. |
+| `TimeRange` | Um intervalo de tempo entre duas `TimeOfDay`. |
+| `BusinessHours` | Modelo completo de horário comercial para uma semana. |
+| `Timezone` | Representa um fuso horário IANA (ex: "America/Sao_Paulo") de uma lista registrável. |
+| `CreatedAt`, `UpdatedAt` | Timestamps de criação e modificação. |
 | `NullableTime`| Um `time.Time` que pode ser nulo, para campos como `deleted_at`. |
 | **Auditoria & Domínio** | |
 | `Audit` | Struct embutível com a trilha de auditoria completa. |
@@ -55,6 +72,7 @@ Este pacote nasceu da necessidade de combater a "Obsessão Primitiva" (*Primitiv
 | `Version` | Versão numérica para travamento otimista. |
 | `Role` | Sistema de registro extensível para papéis de usuário (`ADMIN`, etc.). |
 | `Preferences` | Objeto seguro para armazenar dados JSON flexíveis (chave-valor). |
+| `Flag[T]` | Tipo genérico para representar um estado binário com valores customizados. |
 | **Primitivos Seguros** | |
 | `NonEmptyString` | Uma `string` que garante não ser vazia após remover espaços. |
 | `PositiveInt` | Um `int` que garante ser sempre maior que zero. |
@@ -67,18 +85,27 @@ go get github.com/marcelofabianov/wisp
 
 ### Configuração do Pacote
 
-Alguns tipos em wisp são extensíveis. É recomendado configurar os valores padrão na inicialização da sua aplicação (em uma função init() ou no início da main()).
+Alguns tipos em wisp são extensíveis. É recomendado configurar os valores padrão na inicialização da sua aplicação.
 
 ```go
 func init() {
-    // Define a maioridade padrão para 21 anos
-    wisp.SetLegalAge(21) // Quando nao definido é 18 anos
+    // Define a maioridade padrão para 21 anos (padrão é 18)
+    wisp.SetLegalAge(21)
 
-    // Define a precisão padrão para quantidades
-    wisp.SetDefaultPrecision(4) // Quando nao definido é 3 casas decimais para quantidades
+    // Define a precisão padrão para quantidades (padrão é 3)
+    wisp.SetDefaultPrecision(4)
 
     // Registra as unidades de medida que seu domínio utilizará
     wisp.RegisterUnits("KG", "UN", "L", "M2", "H")
+
+    // Registra os papéis de usuário que seu domínio utilizará
+    wisp.RegisterRoles("ADMIN", "TEACHER", "STUDENT")
+
+    // Registra as extensões de arquivo permitidas
+    wisp.RegisterFileExtensions("pdf", "xml", "jpg", "jpeg", "png")
+
+    // Registra os tipos de mídia (MIME types) permitidos para uploads
+    wisp.RegisterMIMETypes("image/jpeg", "image/png", "application/pdf", "text/xml")
 }
 ```
 
@@ -170,11 +197,18 @@ import (
 
 // --- Definições do seu pacote de domínio ---
 
-// NewCourseInput é o DTO.
+// Definimos os estados permitidos para o status do curso.
+const (
+	StatusPublished = "published"
+	StatusDraft     = "draft"
+)
+
+// NewCourseInput é o DTO que carrega dados brutos e não validados.
 type NewCourseInput struct {
 	Name           string
 	Description    string
 	MaxEnrollments int
+	InitialStatus  string // O status inicial vem como uma string simples
 	CreatedBy      wisp.AuditUser
 }
 
@@ -184,6 +218,7 @@ type Course struct {
 	Name           wisp.NonEmptyString
 	Description    wisp.NonEmptyString
 	MaxEnrollments wisp.PositiveInt
+	Status         wisp.Flag[string] // O status agora é um wisp.Flag
 	wisp.Audit
 }
 
@@ -201,6 +236,13 @@ func NewCourse(input NewCourseInput) (*Course, error) {
 	if err != nil {
 		return nil, fault.Wrap(err, "invalid max enrollments")
 	}
+
+	// Valida e cria o Flag de status
+	status, err := wisp.NewFlag(input.InitialStatus, StatusPublished, StatusDraft)
+	if err != nil {
+		return nil, fault.Wrap(err, "invalid initial status for course")
+	}
+
 	id, err := wisp.NewUUID()
 	if err != nil {
 		return nil, err
@@ -210,59 +252,58 @@ func NewCourse(input NewCourseInput) (*Course, error) {
 		Name:           name,
 		Description:    description,
 		MaxEnrollments: maxEnrollments,
+		Status:         status,
 		Audit:          wisp.NewAudit(input.CreatedBy),
 	}, nil
 }
 
-// ChangeName é um método de comportamento que altera o estado e atualiza a auditoria.
-func (c *Course) ChangeName(name wisp.NonEmptyString, updatedBy wisp.AuditUser) {
-	c.Name = name
+// Publish é um método de comportamento que altera o estado do curso para publicado.
+func (c *Course) Publish(updatedBy wisp.AuditUser) error {
+	if c.Status.Is(StatusPublished) {
+		return fault.New("course is already published", fault.WithCode(fault.Conflict))
+	}
+	newStatus, _ := wisp.NewFlag(StatusPublished, StatusPublished, StatusDraft)
+	c.Status = newStatus
 	c.Audit.Touch(updatedBy)
+	return nil
 }
 
 // --- Uso prático na aplicação ---
 func main() {
 	creator, _ := wisp.NewAuditUser("admin@example.com")
-	updater, _ := wisp.NewAuditUser("system")
 
-	// 1. Tentativa de criar um curso com dados inválidos
-	inputInvalido := NewCourseInput{
+	// 1. Criando um novo curso como rascunho
+	fmt.Println("Criando um curso como rascunho...")
+	input := NewCourseInput{
 		Name:           "   Curso de Go   ",
 		Description:    "Um curso focado em boas práticas.",
-		MaxEnrollments: -10, // Inválido!
+		MaxEnrollments: 50,
+		InitialStatus:  StatusDraft, // Inicia como rascunho
 		CreatedBy:      creator,
 	}
 
-	fmt.Println("Tentando criar curso com limite de matrícula inválido...")
-	_, err := NewCourse(inputInvalido)
-	if err != nil {
-		fmt.Printf("ERRO: %v\n\n", err) // Saída: ERRO: invalid max enrollments: value must be a positive integer
-	}
-
-	// 2. Criando um curso válido
-	inputValido := inputInvalido
-	inputValido.MaxEnrollments = 50
-
-	fmt.Println("Criando um curso válido...")
-	course, err := NewCourse(inputValido)
+	course, err := NewCourse(input)
 	if err != nil {
 		log.Fatalf("Falha inesperada: %v", err)
 	}
 
 	fmt.Printf("Curso criado com sucesso!\n")
 	fmt.Printf("  ID: %s\n", course.ID)
-	fmt.Printf("  Nome: '%s' (espaços foram removidos)\n", course.Name)
-	fmt.Printf("  Versão inicial: %d\n", course.Audit.Version.Int())
-	fmt.Printf("  Está ativo: %t\n\n", course.Audit.IsActive())
+	fmt.Printf("  Status Inicial: %s\n", course.Status.Get())
+	// A verificação de estado é explícita e segura
+	fmt.Printf("  O curso está público? %t\n\n", course.Status.Is(StatusPublished))
 
-	// 3. Usando um método de comportamento para alterar o nome
-	fmt.Println("Alterando o nome do curso...")
-	newName, _ := wisp.NewNonEmptyString("Introdução ao Go com Domain-Driven Design")
-	course.ChangeName(newName, updater)
+	// 2. Usando um método de comportamento para publicar o curso
+	fmt.Println("Publicando o curso...")
+	err = course.Publish(creator)
+	if err != nil {
+		log.Fatalf("Falha ao publicar: %v", err)
+	}
 
-	fmt.Printf("Nome alterado para: '%s'\n", course.Name)
-	fmt.Printf("Versão atualizada: %d\n", course.Audit.Version.Int())
-	fmt.Printf("Atualizado por: %s\n", course.Audit.UpdatedBy)
+	fmt.Printf("Status atualizado: %s\n", course.Status.Get())
+	fmt.Printf("  O curso está público? %t\n", course.Status.Is(StatusPublished))
+	fmt.Printf("  Versão atualizada: %d\n", course.Audit.Version.Int())
+	fmt.Printf("  Atualizado por: %s\n", course.Audit.UpdatedBy)
 }
 ```
 
