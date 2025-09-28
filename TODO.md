@@ -6,7 +6,7 @@
 - [x] Latitude
 - [x] IPAddress
 - [x] Slug
-- [ ] PortNumber
+- [x] PortNumber
 - [ ] FileExtension
 - [ ] MIMEType
 - [ ] Color
