@@ -2,7 +2,7 @@
 
 - [x] Weight
 - [x] Length
-- [ ] Longitude
+- [x] Longitude
 - [ ] Latitude
 - [ ] IPAddress
 - [ ] Slug
