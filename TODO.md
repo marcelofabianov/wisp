@@ -3,7 +3,7 @@
 - [x] Weight
 - [x] Length
 - [x] Longitude
-- [ ] Latitude
+- [x] Latitude
 - [ ] IPAddress
 - [ ] Slug
 - [ ] PortNumber
