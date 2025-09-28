@@ -1,6 +1,7 @@
 package wisp_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -54,7 +55,7 @@ func (s *BoundedValueSuite) TestBoundedValue_Add() {
 	s.Run("should fail if amount exceeds the maximum", func() {
 		_, err := bv.Add(11)
 		s.Require().Error(err)
-		s.Equal(wisp.ErrLimitExceeded, err)
+		s.Equal(wisp.ErrValueExceedsMax, err)
 	})
 
 	s.Run("should not change the original value (immutability)", func() {
@@ -72,9 +73,9 @@ func (s *BoundedValueSuite) TestBoundedValue_Subtract() {
 	bv, _ := wisp.NewBoundedValue(10, 100)
 
 	s.Run("should subtract amount successfully", func() {
-		newBv, err := bv.Subtract(10)
+		newBv, err := bv.Subtract(5)
 		s.Require().NoError(err)
-		s.Equal(int64(0), newBv.Current())
+		s.Equal(int64(5), newBv.Current())
 	})
 
 	s.Run("should fail if subtracting more than current value", func() {
@@ -85,5 +86,38 @@ func (s *BoundedValueSuite) TestBoundedValue_Subtract() {
 	s.Run("should fail for negative amount", func() {
 		_, err := bv.Subtract(-5)
 		s.Require().Error(err)
+	})
+}
+
+func (s *BoundedValueSuite) TestBoundedValue_Set() {
+	bv, _ := wisp.NewBoundedValue(50, 100)
+
+	s.Run("should set a new value within the range", func() {
+		newBv, err := bv.Set(75)
+		s.Require().NoError(err)
+		s.Equal(int64(75), newBv.Current())
+	})
+
+	s.Run("should fail to set a value outside the [0, max] range", func() {
+		_, err := bv.Set(101)
+		s.Require().Error(err)
+
+		_, err = bv.Set(-1)
+		s.Require().Error(err)
+	})
+}
+
+func (s *BoundedValueSuite) TestBoundedValue_JSON() {
+	s.Run("should marshal and unmarshal correctly", func() {
+		bv, _ := wisp.NewBoundedValue(25, 200)
+		data, err := json.Marshal(bv)
+		s.Require().NoError(err)
+		s.JSONEq(`{"current": 25, "max": 200}`, string(data))
+
+		var unmarshaledBv wisp.BoundedValue
+		err = json.Unmarshal(data, &unmarshaledBv)
+		s.Require().NoError(err)
+		s.Equal(bv.Current(), unmarshaledBv.Current())
+		s.Equal(bv.Max(), unmarshaledBv.Max())
 	})
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/marcelofabianov/fault"
 )
 
-var ErrLimitExceeded = fault.New("operation would exceed the maximum value", fault.WithCode(fault.Conflict))
+var ErrValueExceedsMax = fault.New("operation would exceed the maximum value", fault.WithCode(fault.Conflict))
 
 type BoundedValue struct {
 	current int64
@@ -58,7 +58,7 @@ func (bv BoundedValue) Add(amount int64) (BoundedValue, error) {
 		return ZeroBoundedValue, fault.New("amount to add must be non-negative", fault.WithCode(fault.Invalid))
 	}
 	if bv.AvailableSpace() < amount {
-		return ZeroBoundedValue, ErrLimitExceeded
+		return ZeroBoundedValue, ErrValueExceedsMax
 	}
 	return BoundedValue{current: bv.current + amount, max: bv.max}, nil
 }
@@ -68,9 +68,16 @@ func (bv BoundedValue) Subtract(amount int64) (BoundedValue, error) {
 		return ZeroBoundedValue, fault.New("amount to subtract must be non-negative", fault.WithCode(fault.Invalid))
 	}
 	if bv.current < amount {
-		return ZeroBoundedValue, fault.New("cannot subtract more than the current value", fault.WithCode(fault.Invalid))
+		return ZeroBoundedValue, fault.New("cannot subtract more than the current value (would be negative)", fault.WithCode(fault.Invalid))
 	}
 	return BoundedValue{current: bv.current - amount, max: bv.max}, nil
+}
+
+func (bv BoundedValue) Set(newValue int64) (BoundedValue, error) {
+	if newValue < 0 || newValue > bv.max {
+		return ZeroBoundedValue, fault.New("new value is outside the allowed [0, max] range", fault.WithCode(fault.Invalid))
+	}
+	return BoundedValue{current: newValue, max: bv.max}, nil
 }
 
 func (bv BoundedValue) MarshalJSON() ([]byte, error) {
