@@ -8,7 +8,7 @@
 - [x] Slug
 - [x] PortNumber
 - [x] FileExtension
-- [ ] MIMEType
+- [x] MIMEType
 - [ ] Color
 - [ ] Discount
 - [ ] DayOfWeek
