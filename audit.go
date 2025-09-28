@@ -26,7 +26,7 @@ func NewAudit(createdBy AuditUser) Audit {
 func (a *Audit) Touch(updatedBy AuditUser) {
 	a.UpdatedAt.Touch()
 	a.UpdatedBy = updatedBy
-	a.Version.Increment()
+	a.Version = a.Version.Increment()
 }
 
 func (a *Audit) Archive(archivedBy AuditUser) {

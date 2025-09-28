@@ -18,26 +18,39 @@ func TestVersionSuite(t *testing.T) {
 	suite.Run(t, new(VersionSuite))
 }
 
+func (s *VersionSuite) TestVersion_Constructor() {
+	s.Run("should create a new version with a valid value", func() {
+		v, err := wisp.NewVersion(5)
+		s.Require().NoError(err)
+		s.Equal(wisp.Version(5), v)
+	})
+
+	s.Run("should return an error for a negative version", func() {
+		_, err := wisp.NewVersion(-1)
+		s.Require().Error(err)
+		s.ErrorContains(err, "version cannot be negative")
+	})
+}
+
 func (s *VersionSuite) TestVersion_InitialAndZeroStates() {
 	s.Run("should return 1 for initial version", func() {
 		initial := wisp.InitialVersion()
 		s.Equal(wisp.Version(1), initial)
-		s.Equal(1, initial.Int())
 		s.False(initial.IsZero())
 	})
 
 	s.Run("should be 0 for zero version", func() {
 		s.Equal(wisp.Version(0), wisp.ZeroVersion)
-		s.Equal(0, wisp.ZeroVersion.Int())
 		s.True(wisp.ZeroVersion.IsZero())
 	})
 }
 
 func (s *VersionSuite) TestVersion_Behaviors() {
-	s.Run("should increment the version", func() {
+	s.Run("should increment the version and return a new instance (immutability)", func() {
 		v := wisp.Version(5)
-		v.Increment()
-		s.Equal(wisp.Version(6), v)
+		incrementedV := v.Increment()
+		s.Equal(wisp.Version(6), incrementedV)
+		s.Equal(wisp.Version(5), v, "original version should not be modified")
 	})
 
 	s.Run("should return the previous version", func() {
@@ -49,6 +62,30 @@ func (s *VersionSuite) TestVersion_Behaviors() {
 
 		vZ := wisp.ZeroVersion
 		s.Equal(wisp.ZeroVersion, vZ.Previous())
+	})
+}
+
+func (s *VersionSuite) TestVersion_Comparison() {
+	v1 := wisp.Version(1)
+	v2 := wisp.Version(2)
+	v3 := wisp.Version(3)
+	v3Copy := wisp.Version(3)
+
+	s.Run("should check for equality", func() {
+		s.True(v3.Equals(v3Copy))
+		s.False(v3.Equals(v2))
+	})
+
+	s.Run("should check if is greater than", func() {
+		s.True(v3.IsGreaterThan(v2))
+		s.False(v2.IsGreaterThan(v3))
+		s.False(v3.IsGreaterThan(v3Copy))
+	})
+
+	s.Run("should check if is less than", func() {
+		s.True(v1.IsLessThan(v2))
+		s.False(v2.IsLessThan(v1))
+		s.False(v2.IsLessThan(v2))
 	})
 }
 

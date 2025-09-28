@@ -13,16 +13,23 @@ type Version int
 
 var ZeroVersion Version
 
+func NewVersion(v int) (Version, error) {
+	if v < 0 {
+		return ZeroVersion, fault.New(
+			"version cannot be negative",
+			fault.WithCode(fault.Invalid),
+			fault.WithContext("input_value", v),
+		)
+	}
+	return Version(v), nil
+}
+
 func InitialVersion() Version {
 	return Version(1)
 }
 
-func (v *Version) Increment() {
-	*v++
-}
-
-func (v Version) Int() int {
-	return int(v)
+func (v Version) Increment() Version {
+	return v + 1
 }
 
 func (v Version) Previous() Version {
@@ -34,6 +41,18 @@ func (v Version) Previous() Version {
 
 func (v Version) IsZero() bool {
 	return v == ZeroVersion
+}
+
+func (v Version) Equals(other Version) bool {
+	return v == other
+}
+
+func (v Version) IsGreaterThan(other Version) bool {
+	return v > other
+}
+
+func (v Version) IsLessThan(other Version) bool {
+	return v < other
 }
 
 func (v Version) MarshalJSON() ([]byte, error) {
@@ -109,4 +128,8 @@ func (v *Version) Scan(src interface{}) error {
 
 	*v = Version(intVal)
 	return nil
+}
+
+func (v Version) Int() int {
+	return int(v)
 }
