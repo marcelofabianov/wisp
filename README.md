@@ -182,7 +182,7 @@ func main() {
 
 **Exemplo 3: Modelando a Entidade `Course`**
 
-Este é um guia que irá lhe mostrar como usar os value objects do `wisp` pode construir uma entidade de domínio ` Course` que é segura, expressiva e robusta desde a sua criação.
+Este é um guia que irá lhe mostrar como usar os value objects do `wisp` para construir uma entidade de domínio ` Course` que é segura, expressiva e robusta desde a sua criação.
 
  O pacote [fault](https://github.com/marcelofabianov/fault) presente no exemplo vem para qualificar nossos erros com contexto.
 
