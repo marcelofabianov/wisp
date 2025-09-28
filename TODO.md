@@ -9,7 +9,7 @@
 - [x] PortNumber
 - [x] FileExtension
 - [x] MIMEType
-- [ ] Color
+- [x] Color
 - [ ] Discount
 - [ ] DayOfWeek
 - [ ] BusinessHours
