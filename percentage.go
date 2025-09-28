@@ -28,6 +28,10 @@ func NewPercentageFromFloat(value float64) (Percentage, error) {
 	return Percentage(scaledValue), nil
 }
 
+func (p Percentage) IsNegative() bool {
+	return p < 0
+}
+
 func (p Percentage) Float64() float64 {
 	return float64(p) / percentageFactor
 }

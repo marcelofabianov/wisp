@@ -122,3 +122,10 @@ func (s *PercentageSuite) TestPercentage_DatabaseInterface() {
 		s.Require().Error(err)
 	})
 }
+
+func (s *PercentageSuite) TestPercentage_IsNegative() {
+	p, _ := wisp.NewPercentageFromFloat(0.10) // 10%
+
+	s.False(p.IsNegative())
+	s.False(wisp.ZeroPercentage.IsNegative())
+}

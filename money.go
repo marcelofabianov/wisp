@@ -130,6 +130,10 @@ func (m Money) Split(n int) ([]Money, error) {
 	return parts, nil
 }
 
+func (m Money) IsNegative() bool {
+	return m.amount < 0
+}
+
 func (m Money) Float64() float64 {
 	return float64(m.amount) / 100.0
 }

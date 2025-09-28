@@ -14,6 +14,7 @@
 - [ ] DayOfWeek
 - [ ] BusinessHours
 - [ ] Timezone
+- [ ] Flag (bool, int, string) pode ter 2 valores apenas e seu tipo deve ser igual
 
 ### **Conceito dos novos object**
 

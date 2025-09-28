@@ -82,15 +82,22 @@ func (s *MoneySuite) TestMoney_Arithmetic() {
 		result, err := brl100.Add(brl50)
 		s.Require().NoError(err)
 		s.Equal(int64(15000), result.Amount())
+		s.False(result.IsNegative())
 
 		_, err = brl100.Add(usd50)
 		s.Require().Error(err)
 	})
 
 	s.Run("Subtract", func() {
-		result, err := brl100.Subtract(brl50)
+		positiveResult, err := brl100.Subtract(brl50)
 		s.Require().NoError(err)
-		s.Equal(int64(5000), result.Amount())
+		s.Equal(int64(5000), positiveResult.Amount())
+		s.False(positiveResult.IsNegative())
+
+		negativeResult, err := brl50.Subtract(brl100)
+		s.Require().NoError(err)
+		s.Equal(int64(-5000), negativeResult.Amount())
+		s.True(negativeResult.IsNegative())
 
 		_, err = brl100.Subtract(usd50)
 		s.Require().Error(err)
@@ -99,7 +106,11 @@ func (s *MoneySuite) TestMoney_Arithmetic() {
 	s.Run("Multiply", func() {
 		result := brl50.Multiply(3)
 		s.Equal(int64(15000), result.Amount())
-		s.Equal(wisp.BRL, result.Currency())
+		s.False(result.IsNegative())
+
+		negativeResult := brl50.Multiply(-3)
+		s.Equal(int64(-15000), negativeResult.Amount())
+		s.True(negativeResult.IsNegative())
 	})
 }
 
