@@ -5,7 +5,7 @@
 - [x] Longitude
 - [x] Latitude
 - [x] IPAddress
-- [ ] Slug
+- [x] Slug
 - [ ] PortNumber
 - [ ] FileExtension
 - [ ] MIMEType

@@ -6,6 +6,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/marcelofabianov/fault v1.1.0
 	github.com/stretchr/testify v1.10.0
+	golang.org/x/text v0.29.0
 )
 
 require (
