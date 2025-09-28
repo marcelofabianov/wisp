@@ -1,6 +1,6 @@
 ### **Checklist de Implementação - Value Objects**
 
-- [ ] Weight
+- [x] Weight
 - [ ] Length
 - [ ] Longitude
 - [ ] Latitude
