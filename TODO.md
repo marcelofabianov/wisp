@@ -1,7 +1,7 @@
 ### **Checklist de Implementação - Value Objects**
 
 - [x] Weight
-- [ ] Length
+- [x] Length
 - [ ] Longitude
 - [ ] Latitude
 - [ ] IPAddress
