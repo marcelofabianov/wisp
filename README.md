@@ -180,50 +180,57 @@ func main() {
 }
 ```
 
-**Exemplo 3: Modelagem de uma Entidade**
+**Exemplo 3: Modelando a Entidade `Course`**
 
-Este exemplo demonstra como os tipos `wisp` se unem para criar uma entidade `Course` segura e expressiva. O pacote [fault](https://github.com/marcelofabianov/fault) presente no exemplo vem para qualificar nossos erros com contexto.
+Este é um guia que irá lhe mostrar como usar os value objects do `wisp` pode construir uma entidade de domínio ` Course` que é segura, expressiva e robusta desde a sua criação.
 
-```go
-package main
+ O pacote [fault](https://github.com/marcelofabianov/fault) presente no exemplo vem para qualificar nossos erros com contexto.
 
-import (
-	"fmt"
-	"log"
+ O objetivo é simples: parar de usar tipos primitivos como `string` e `int` para representar conceitos de negócio complexos e, com isso, eliminar uma série de bugs comuns.
 
-	"github.com/marcelofabianov/fault"
-	"github.com/marcelofabianov/wisp"
-)
+ **Passo 1: A Porta de Entrada - O DTO (`NewCourseInput`)**
 
-// --- Definições do seu pacote de domínio ---
+ Primeiro, precisamos de uma forma de receber dados do "mundo exterior" (uma API, um formulário, etc.). Para isso, usamos uma `struct` simples, conhecida como DTO (Data Transfer Object). Note que ela usa tipos primitivos (`string`, `int`), pois neste ponto, os dados ainda são brutos e não confiáveis.
 
-// Definimos os estados permitidos para o status do curso.
-const (
-	StatusPublished = "published"
-	StatusDraft     = "draft"
-)
-
-// NewCourseInput é o DTO que carrega dados brutos e não validados.
-type NewCourseInput struct {
+ ```go
+ type NewCourseInput struct {
 	Name           string
 	Description    string
+	MinEnrollments int
 	MaxEnrollments int
-	InitialStatus  string // O status inicial vem como uma string simples
 	CreatedBy      wisp.AuditUser
 }
+```
 
+**Passo 2: O Coração do Domínio - A Entidade (Course)**
+
+Agora, a parte mais importante: a entidade `Course`. Esta `struct` representa um curso dentro do nosso sistema. Diferente do DTO, aqui nós usamos os tipos `wisp` para garantir que um `Course`, uma vez criado, esteja sempre em um estado válido.
+
+```go
 // Course é a Entidade de Domínio, protegida por tipos wisp.
 type Course struct {
-	ID             wisp.UUID
-	Name           wisp.NonEmptyString
-	Description    wisp.NonEmptyString
-	MaxEnrollments wisp.PositiveInt
-	Status         wisp.Flag[string] // O status agora é um wisp.Flag
+	ID          wisp.UUID
+	Name        wisp.NonEmptyString
+	Description wisp.NonEmptyString
+	Enrollments wisp.RangedValue // Este tipo é a chave da nossa nova lógica
 	wisp.Audit
 }
+```
 
+Vamos analisar cada campo `wisp`:
+- ID `wisp.UUID`: Garante que todo curso terá um identificador único e em um formato válido.
+- Name `wisp.NonEmptyString`: Garante que o nome do curso nunca será uma string vazia ou contendo apenas espaços. A validação e a limpeza (trim) são feitas na criação.
+- Enrollments `wisp.RangedValue`: Este é o nosso value object mais poderoso aqui. Ele encapsula a regra de negócio de que as matrículas têm um valor mínimo para o curso acontecer e um máximo. O RangedValue gerencia o número current (atual), min (mínimo) e max (máximo) de matrículas, garantindo que o valor atual nunca saia desses limites.
+- `wisp.Audit`: Com uma única linha, embutimos todos os campos de auditoria (CreatedAt, CreatedBy, Version, etc.) na nossa entidade.
+
+**Passo 3: O Guardião - A Factory (`NewCourse`)**
+
+Como transformamos os dados brutos do `NewCourseInput` na nossa entidade `Course` segura? Através de uma "Factory Function". Esta função é o **guardião do nosso domínio**. É o único ponto de entrada permitido para criar um `Course`, e é aqui que toda a validação acontece.
+
+```go
 // NewCourse é a Factory que valida os dados brutos e cria uma entidade segura.
 func NewCourse(input NewCourseInput) (*Course, error) {
+	// Usamos os construtores do wisp para validar cada campo do DTO
 	name, err := wisp.NewNonEmptyString(input.Name)
 	if err != nil {
 		return nil, fault.Wrap(err, "invalid name")
@@ -232,78 +239,116 @@ func NewCourse(input NewCourseInput) (*Course, error) {
 	if err != nil {
 		return nil, fault.Wrap(err, "invalid description")
 	}
-	maxEnrollments, err := wisp.NewPositiveInt(input.MaxEnrollments)
-	if err != nil {
-		return nil, fault.Wrap(err, "invalid max enrollments")
-	}
 
-	// Valida e cria o Flag de status
-	status, err := wisp.NewFlag(input.InitialStatus, StatusPublished, StatusDraft)
+	// Aqui, criamos o RangedValue. O valor inicial (current) de matrículas é 0.
+	enrollments, err := wisp.NewRangedValue(0, int64(input.MinEnrollments), int64(input.MaxEnrollments))
 	if err != nil {
-		return nil, fault.Wrap(err, "invalid initial status for course")
+		return nil, fault.Wrap(err, "invalid enrollments range")
 	}
 
 	id, err := wisp.NewUUID()
 	if err != nil {
 		return nil, err
 	}
+
+	// Se todas as validações passaram, montamos a entidade.
 	return &Course{
-		ID:             id,
-		Name:           name,
-		Description:    description,
-		MaxEnrollments: maxEnrollments,
-		Status:         status,
-		Audit:          wisp.NewAudit(input.CreatedBy),
+		ID:          id,
+		Name:        name,
+		Description: description,
+		Enrollments: enrollments,
+		Audit:       wisp.NewAudit(input.CreatedBy),
 	}, nil
 }
+```
 
-// Publish é um método de comportamento que altera o estado do curso para publicado.
-func (c *Course) Publish(updatedBy wisp.AuditUser) error {
-	if c.Status.Is(StatusPublished) {
-		return fault.New("course is already published", fault.WithCode(fault.Conflict))
+Se a função `NewCourse` retornar sem erro, você tem a garantia matemática de que o objeto `Course` é válido.
+
+**Passo 4: Dando Vida à Entidade (Comportamento)**
+
+Entidades não são apenas dados, elas têm comportamento. Veja como os métodos do `Course` ficam simples e legíveis, pois a lógica complexa já está nos value objects.
+
+```go
+// EnrollStudent é um método de comportamento que adiciona uma matrícula.
+func (c *Course) EnrollStudent(updatedBy wisp.AuditUser) error {
+	// A validação de limite máximo é delegada para o RangedValue!
+	newEnrollments, err := c.Enrollments.Add(1)
+	if err != nil {
+		return err // Retornará wisp.ErrValueExceedsMax se o curso estiver cheio
 	}
-	newStatus, _ := wisp.NewFlag(StatusPublished, StatusPublished, StatusDraft)
-	c.Status = newStatus
+	c.Enrollments = newEnrollments
 	c.Audit.Touch(updatedBy)
 	return nil
 }
 
-// --- Uso prático na aplicação ---
+// CanStart verifica se o curso atingiu o número mínimo de matrículas.
+func (c *Course) CanStart() bool {
+	return c.Enrollments.Current() >= c.Enrollments.Min()
+}
+```
+
+Note como `EnrollStudent` é simples. Ele apenas chama `c.Enrollments.Add(1)`. Toda a complexidade de "verificar se a soma excede o máximo" está escondida dentro do `RangedValue`, onde deve estar.
+
+**Colocando Tudo Junto: Exemplo Prático**
+
+Agora, vamos ver o código completo em ação.
+
+```go
+package main
+
+import (
+	"errors"
+	"fmt"
+	"log"
+    // ... imports de Course e wisp
+)
+
 func main() {
 	creator, _ := wisp.NewAuditUser("admin@example.com")
 
-	// 1. Criando um novo curso como rascunho
-	fmt.Println("Criando um curso como rascunho...")
+	// 1. Definindo os parâmetros para um novo curso
 	input := NewCourseInput{
-		Name:           "   Curso de Go   ",
-		Description:    "Um curso focado em boas práticas.",
-		MaxEnrollments: 50,
-		InitialStatus:  StatusDraft, // Inicia como rascunho
+		Name:           "Curso de Testes em Go",
+		Description:    "Aprendendo a testar com testify.",
+		MinEnrollments: 5,  // Precisa de 5 alunos para começar
+		MaxEnrollments: 7,  // Limite de 7 alunos
 		CreatedBy:      creator,
 	}
 
+	fmt.Println("Criando um curso...")
 	course, err := NewCourse(input)
 	if err != nil {
 		log.Fatalf("Falha inesperada: %v", err)
 	}
 
-	fmt.Printf("Curso criado com sucesso!\n")
-	fmt.Printf("  ID: %s\n", course.ID)
-	fmt.Printf("  Status Inicial: %s\n", course.Status.Get())
-	// A verificação de estado é explícita e segura
-	fmt.Printf("  O curso está público? %t\n\n", course.Status.Is(StatusPublished))
+	fmt.Printf("Curso criado!\n")
+	fmt.Printf("  Matrículas: %d (Mín: %d, Máx: %d)\n",
+		course.Enrollments.Current(), course.Enrollments.Min(), course.Enrollments.Max())
+	fmt.Printf("  O curso pode começar? %t\n\n", course.CanStart())
 
-	// 2. Usando um método de comportamento para publicar o curso
-	fmt.Println("Publicando o curso...")
-	err = course.Publish(creator)
-	if err != nil {
-		log.Fatalf("Falha ao publicar: %v", err)
+	// 2. Simulando matrículas
+	fmt.Println("Matriculando 5 alunos para atingir o mínimo...")
+	for i := 0; i < 5; i++ {
+		course.EnrollStudent(creator)
 	}
+	fmt.Printf("  Matrículas atuais: %d\n", course.Enrollments.Current())
+	fmt.Printf("  O curso pode começar? %t\n\n", course.CanStart())
 
-	fmt.Printf("Status atualizado: %s\n", course.Status.Get())
-	fmt.Printf("  O curso está público? %t\n", course.Status.Is(StatusPublished))
-	fmt.Printf("  Versão atualizada: %d\n", course.Audit.Version.Int())
-	fmt.Printf("  Atualizado por: %s\n", course.Audit.UpdatedBy)
+	// 3. Enchendo a turma
+	fmt.Println("Matriculando mais 2 alunos para encher a turma...")
+	course.EnrollStudent(creator)
+	course.EnrollStudent(creator)
+	fmt.Printf("  A turma está cheia? %t\n\n", course.Enrollments.IsAtMax())
+
+	// 4. Tentando matricular um aluno extra (onde o wisp brilha!)
+	fmt.Println("Tentando matricular o 8º aluno...")
+	err = course.EnrollStudent(creator)
+	if err != nil {
+		// Verificamos o erro específico retornado pelo RangedValue
+		if errors.Is(err, wisp.ErrValueExceedsMax) {
+			fmt.Println("SUCESSO: Erro esperado recebido -> Turma cheia!")
+		}
+	}
 }
 ```
 
