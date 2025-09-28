@@ -7,7 +7,7 @@
 - [x] IPAddress
 - [x] Slug
 - [x] PortNumber
-- [ ] FileExtension
+- [x] FileExtension
 - [ ] MIMEType
 - [ ] Color
 - [ ] Discount
