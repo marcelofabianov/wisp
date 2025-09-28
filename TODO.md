@@ -12,7 +12,7 @@
 - [x] Color
 - [x] Discount
 - [x] DayOfWeek
-- [ ] BusinessHours
+- [x] BusinessHours (TimeOfDay, TimeRange, TimeOfDay)
 - [ ] Timezone
 - [ ] Flag (bool, int, string) pode ter 2 valores apenas e seu tipo deve ser igual
 
