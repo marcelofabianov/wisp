@@ -10,7 +10,7 @@
 - [x] FileExtension
 - [x] MIMEType
 - [x] Color
-- [ ] Discount
+- [x] Discount
 - [ ] DayOfWeek
 - [ ] BusinessHours
 - [ ] Timezone
