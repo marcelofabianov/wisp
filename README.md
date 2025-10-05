@@ -73,6 +73,7 @@ Este pacote nasceu da necessidade de combater a "Obsessão Primitiva" (*Primitiv
 | `Role` | Sistema de registro extensível para papéis de usuário (`ADMIN`, etc.). |
 | `Preferences` | Objeto seguro para armazenar dados JSON flexíveis (chave-valor). |
 | `Flag[T]` | Tipo genérico para representar um estado binário com valores customizados. |
+| `Status` | Tipo genérico para representar um estado com valores customizados. |
 | **Primitivos Seguros** | |
 | `NonEmptyString` | Uma `string` que garante não ser vazia após remover espaços. |
 | `PositiveInt` | Um `int` que garante ser sempre maior que zero. |
