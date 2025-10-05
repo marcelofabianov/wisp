@@ -37,14 +37,14 @@ func (u UpdatedAt) Time() time.Time {
 // RFC3339 returns the timestamp in RFC3339 format (ISO 8601).
 // This is the standard format for API responses.
 // Example: "2025-10-05T22:38:09.924551Z"
-func (c CreatedAt) RFC3339() string {
-	return c.Time().Format(time.RFC3339Nano)
+func (u UpdatedAt) RFC3339() string {
+	return u.Time().Format(time.RFC3339Nano)
 }
 
 // MarshalJSON implements the json.Marshaler interface.
-// It serializes the UpdatedAt timestamp into a standard JSON time format.
+// It serializes the UpdatedAt timestamp in RFC3339 format (ISO 8601).
 func (u UpdatedAt) MarshalJSON() ([]byte, error) {
-	return json.Marshal(u.Time())
+	return json.Marshal(u.Time().Format(time.RFC3339Nano))
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface.

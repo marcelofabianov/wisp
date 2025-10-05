@@ -36,9 +36,9 @@ func (c CreatedAt) RFC3339() string {
 }
 
 // MarshalJSON implements the json.Marshaler interface.
-// It serializes the CreatedAt timestamp into a standard JSON time format.
+// It serializes the CreatedAt timestamp in RFC3339 format (ISO 8601).
 func (c CreatedAt) MarshalJSON() ([]byte, error) {
-	return json.Marshal(c.Time())
+	return json.Marshal(c.Time().Format(time.RFC3339Nano))
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
