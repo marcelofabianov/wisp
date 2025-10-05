@@ -3,11 +3,11 @@
 Lista completa de todos os types disponíveis no pacote wisp, organizados por categoria.
 
 ## Identificadores
-- [x] 1. CPF
-- [x] 2. CNPJ
-- [x] 3. UUID
-- [x] 4. NullableUUID
-- [x] 5. Slug
+- [x] 1. CPF - 📝 Documentado
+- [x] 2. CNPJ - 📝 Documentado
+- [x] 3. UUID - 📝 Documentado
+- [x] 4. NullableUUID - 📝 Documentado
+- [x] 5. Slug - 📝 Documentado
 
 ## Financeiro
 - [x] 6. Money

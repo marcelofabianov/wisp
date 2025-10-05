@@ -9,8 +9,22 @@ import (
 	"github.com/marcelofabianov/fault"
 )
 
+// CNPJ represents a Brazilian legal entity identification number (Cadastro Nacional da Pessoa Jurídica).
+// It validates the format and verifies check digits according to Brazilian government standards.
+// The value is stored without formatting (digits only) but can be displayed with proper formatting.
+//
+// Examples:
+//   - Input: "12.345.678/0001-90" or "12345678000190"
+//   - Storage: "12345678000190"
+//   - Formatted output: "12.345.678/0001-90"
+//
+// A CNPJ is considered valid when:
+//   - It contains exactly 14 digits
+//   - It's not a sequence of repeated digits (e.g., "11111111111111")
+//   - Both check digits are mathematically correct according to the official algorithm
 type CNPJ string
 
+// EmptyCNPJ represents the zero value for CNPJ type.
 var EmptyCNPJ CNPJ
 
 func parseCNPJ(input string) (CNPJ, error) {
@@ -80,18 +94,42 @@ func parseCNPJ(input string) (CNPJ, error) {
 	return CNPJ(sanitized), nil
 }
 
+// NewCNPJ creates a new CNPJ from the given input string.
+// It accepts CNPJ in various formats (with or without dots, slash and dash) and validates it.
+//
+// The function performs the following validations:
+//   - Removes all non-digit characters
+//   - Checks if it has exactly 14 digits
+//   - Validates that it's not a sequence of repeated digits
+//   - Verifies both check digits using the official algorithm
+//
+// Examples:
+//   cnpj, err := NewCNPJ("12.345.678/0001-90")  // Valid formatted
+//   cnpj, err := NewCNPJ("12345678000190")      // Valid unformatted
+//   cnpj, err := NewCNPJ("")                   // Returns EmptyCNPJ
+//   cnpj, err := NewCNPJ("11111111111111")     // Error: repeated digits
+//   cnpj, err := NewCNPJ("123456789")          // Error: too short
 func NewCNPJ(input string) (CNPJ, error) {
 	return parseCNPJ(input)
 }
 
+// String returns the CNPJ as a string without formatting (digits only).
+// For formatted output, use Formatted() method instead.
 func (c CNPJ) String() string {
 	return string(c)
 }
 
+// IsZero returns true if the CNPJ is the zero value (EmptyCNPJ).
 func (c CNPJ) IsZero() bool {
 	return c == EmptyCNPJ
 }
 
+// Formatted returns the CNPJ in the standard Brazilian format (XX.XXX.XXX/XXXX-XX).
+// If the CNPJ is invalid or has wrong length, returns the unformatted string.
+//
+// Example:
+//   cnpj := CNPJ("12345678000190")
+//   fmt.Println(cnpj.Formatted()) // Output: "12.345.678/0001-90"
 func (c CNPJ) Formatted() string {
 	if len(c) != 14 {
 		return c.String()
@@ -99,10 +137,14 @@ func (c CNPJ) Formatted() string {
 	return fmt.Sprintf("%s.%s.%s/%s-%s", c[0:2], c[2:5], c[5:8], c[8:12], c[12:14])
 }
 
+// MarshalJSON implements the json.Marshaler interface.
+// It serializes the CNPJ as a JSON string without formatting.
 func (c CNPJ) MarshalJSON() ([]byte, error) {
 	return json.Marshal(c.String())
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// It deserializes a JSON string into a CNPJ, performing full validation.
 func (c *CNPJ) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
@@ -116,6 +158,8 @@ func (c *CNPJ) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Value implements the driver.Valuer interface for database storage.
+// It returns the CNPJ as a string or nil if zero value.
 func (c CNPJ) Value() (driver.Value, error) {
 	if c.IsZero() {
 		return nil, nil
@@ -123,6 +167,8 @@ func (c CNPJ) Value() (driver.Value, error) {
 	return c.String(), nil
 }
 
+// Scan implements the sql.Scanner interface for database retrieval.
+// It accepts string or []byte values and validates them as CNPJ.
 func (c *CNPJ) Scan(src interface{}) error {
 	if src == nil {
 		*c = EmptyCNPJ

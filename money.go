@@ -7,13 +7,44 @@ import (
 	"github.com/marcelofabianov/fault"
 )
 
+// Money represents a monetary amount with a specific currency.
+// It stores the amount in the smallest currency unit (e.g., cents for USD, centavos for BRL)
+// to avoid floating-point precision issues in financial calculations.
+//
+// The Money type ensures:
+//   - Precise decimal arithmetic without floating-point errors
+//   - Currency safety - operations only work with same currencies
+//   - Immutability - operations return new instances
+//   - Thread safety through immutable design
+//
+// Examples:
+//   money, err := NewMoney(1050, BRL)  // R$ 10.50 (1050 centavos)
+//   money, err := NewMoney(2500, USD)  // $25.00 (2500 cents)
+//   fmt.Println(money.String())        // "BRL 10.50"
+//   fmt.Println(money.Amount())        // 1050
+//   fmt.Println(money.Currency())      // BRL
+//
+// All arithmetic operations (Add, Subtract, Multiply) return new Money instances
+// and validate that currencies match when required.
 type Money struct {
-	amount   int64
-	currency Currency
+	amount   int64    // Amount in smallest currency unit (cents, centavos, etc.)
+	currency Currency // The currency of this monetary amount
 }
 
+// ZeroMoney represents the zero value for Money type.
+// It has zero amount and zero currency, making it invalid for most operations.
 var ZeroMoney = Money{}
 
+// NewMoney creates a new Money value with the specified amount and currency.
+// The amount should be provided in the smallest currency unit (cents, centavos, etc.).
+//
+// Returns an error if the currency is invalid or zero.
+//
+// Examples:
+//   money, err := NewMoney(1050, BRL)  // R$ 10.50
+//   money, err := NewMoney(2500, USD)  // $25.00
+//   money, err := NewMoney(0, BRL)     // R$ 0.00 (valid)
+//   money, err := NewMoney(1000, Currency{}) // Error: invalid currency
 func NewMoney(amountInCents int64, currency Currency) (Money, error) {
 	if currency.IsZero() || !currency.IsValid() {
 		return ZeroMoney, fault.New(

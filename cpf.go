@@ -9,8 +9,22 @@ import (
 	"github.com/marcelofabianov/fault"
 )
 
+// CPF represents a Brazilian individual taxpayer identification number (Cadastro de Pessoa Física).
+// It validates the format and verifies check digits according to Brazilian government standards.
+// The value is stored without formatting (digits only) but can be displayed with proper formatting.
+//
+// Examples:
+//   - Input: "123.456.789-09" or "12345678909"
+//   - Storage: "12345678909"
+//   - Formatted output: "123.456.789-09"
+//
+// A CPF is considered valid when:
+//   - It contains exactly 11 digits
+//   - It's not a sequence of repeated digits (e.g., "11111111111")
+//   - Both check digits are mathematically correct according to the official algorithm
 type CPF string
 
+// EmptyCPF represents the zero value for CPF type.
 var EmptyCPF CPF
 
 func parseCPF(input string) (CPF, error) {
@@ -78,18 +92,42 @@ func parseCPF(input string) (CPF, error) {
 	return CPF(sanitized), nil
 }
 
+// NewCPF creates a new CPF from the given input string.
+// It accepts CPF in various formats (with or without dots and dash) and validates it.
+//
+// The function performs the following validations:
+//   - Removes all non-digit characters
+//   - Checks if it has exactly 11 digits
+//   - Validates that it's not a sequence of repeated digits
+//   - Verifies both check digits using the official algorithm
+//
+// Examples:
+//   cpf, err := NewCPF("123.456.789-09")  // Valid formatted
+//   cpf, err := NewCPF("12345678909")     // Valid unformatted
+//   cpf, err := NewCPF("")               // Returns EmptyCPF
+//   cpf, err := NewCPF("11111111111")    // Error: repeated digits
+//   cpf, err := NewCPF("123456789")      // Error: too short
 func NewCPF(input string) (CPF, error) {
 	return parseCPF(input)
 }
 
+// String returns the CPF as a string without formatting (digits only).
+// For formatted output, use Formatted() method instead.
 func (c CPF) String() string {
 	return string(c)
 }
 
+// IsZero returns true if the CPF is the zero value (EmptyCPF).
 func (c CPF) IsZero() bool {
 	return c == EmptyCPF
 }
 
+// Formatted returns the CPF in the standard Brazilian format (XXX.XXX.XXX-XX).
+// If the CPF is invalid or has wrong length, returns the unformatted string.
+//
+// Example:
+//   cpf := CPF("12345678909")
+//   fmt.Println(cpf.Formatted()) // Output: "123.456.789-09"
 func (c CPF) Formatted() string {
 	if len(c) != 11 {
 		return c.String()
@@ -97,10 +135,14 @@ func (c CPF) Formatted() string {
 	return fmt.Sprintf("%s.%s.%s-%s", c[0:3], c[3:6], c[6:9], c[9:11])
 }
 
+// MarshalJSON implements the json.Marshaler interface.
+// It serializes the CPF as a JSON string without formatting.
 func (c CPF) MarshalJSON() ([]byte, error) {
 	return json.Marshal(c.String())
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// It deserializes a JSON string into a CPF, performing full validation.
 func (c *CPF) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
@@ -114,6 +156,8 @@ func (c *CPF) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Value implements the driver.Valuer interface for database storage.
+// It returns the CPF as a string or nil if zero value.
 func (c CPF) Value() (driver.Value, error) {
 	if c.IsZero() {
 		return nil, nil
@@ -121,6 +165,8 @@ func (c CPF) Value() (driver.Value, error) {
 	return c.String(), nil
 }
 
+// Scan implements the sql.Scanner interface for database retrieval.
+// It accepts string or []byte values and validates them as CPF.
 func (c *CPF) Scan(src interface{}) error {
 	if src == nil {
 		*c = EmptyCPF

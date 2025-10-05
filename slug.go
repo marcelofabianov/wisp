@@ -27,10 +27,48 @@ var (
 	)
 )
 
+// Slug represents a URL-friendly string identifier that follows web standards.
+// It automatically normalizes input text to create safe, consistent URLs.
+//
+// A slug is created by:
+//   - Removing diacritics (é -> e, ñ -> n)
+//   - Converting to lowercase
+//   - Replacing symbols with descriptive words (& -> and, % -> percent)
+//   - Replacing non-alphanumeric characters with hyphens
+//   - Collapsing multiple hyphens into single hyphens
+//   - Trimming leading and trailing hyphens
+//
+// Examples:
+//   - Input: "Hello, World!" -> Output: "hello-world"
+//   - Input: "Café & Bar" -> Output: "cafe-and-bar"
+//   - Input: "100% Natural" -> Output: "100-percent-natural"
+//
+// Slugs are commonly used for:
+//   - URL paths: /blog/my-article-title
+//   - File names: my-document-name.pdf
+//   - API endpoints: /users/john-doe
 type Slug string
 
+// EmptySlug represents the zero value for Slug type.
 var EmptySlug Slug
 
+// NewSlug creates a new Slug from the given input string.
+// It performs normalization to ensure the result is URL-safe and consistent.
+//
+// The normalization process:
+//   1. Removes diacritics and accents (Unicode normalization)
+//   2. Converts to lowercase
+//   3. Replaces common symbols with descriptive words
+//   4. Replaces non-alphanumeric characters with hyphens
+//   5. Collapses multiple consecutive hyphens
+//   6. Trims leading and trailing hyphens
+//
+// Returns an error if the input results in an empty string after normalization.
+//
+// Examples:
+//   slug, err := NewSlug("Hello, World!")     // Returns: "hello-world"
+//   slug, err := NewSlug("Café & Restaurant") // Returns: "cafe-and-restaurant"
+//   slug, err := NewSlug("---")              // Returns: error (empty after normalization)
 func NewSlug(input string) (Slug, error) {
 	// 1. Transliterate to remove diacritics (e.g., "é" -> "e")
 	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
@@ -65,25 +103,34 @@ func NewSlug(input string) (Slug, error) {
 	return Slug(normalized), nil
 }
 
+// String returns the slug as a string.
+// The returned value is guaranteed to be URL-safe and normalized.
 func (s Slug) String() string {
 	return string(s)
 }
 
+// IsZero returns true if the slug is the zero value (EmptySlug).
 func (s Slug) IsZero() bool {
 	return s == EmptySlug
 }
 
+// Equals returns true if this slug is equal to the other slug.
+// Since slugs are normalized, this performs a simple string comparison.
 func (s Slug) Equals(other Slug) bool {
 	return s == other
 }
 
+// MarshalJSON implements the json.Marshaler interface.
+// It serializes the slug as a JSON string.
 func (s Slug) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.String())
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// It deserializes a JSON string into a Slug, performing full normalization.
 func (s *Slug) UnmarshalJSON(data []byte) error {
 	var str string
-	if err := json.Unmarshal(data, &s); err != nil {
+	if err := json.Unmarshal(data, &str); err != nil {
 		return fault.Wrap(err, "Slug must be a valid JSON string", fault.WithCode(fault.Invalid))
 	}
 
@@ -95,6 +142,8 @@ func (s *Slug) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Value implements the driver.Valuer interface for database storage.
+// It returns the slug as a string or nil if zero value.
 func (s Slug) Value() (driver.Value, error) {
 	if s.IsZero() {
 		return nil, nil
@@ -102,6 +151,9 @@ func (s Slug) Value() (driver.Value, error) {
 	return s.String(), nil
 }
 
+// Scan implements the sql.Scanner interface for database retrieval.
+// It accepts string or []byte values and stores them as-is (assuming they're already normalized).
+// For proper validation, use NewSlug when creating slugs from user input.
 func (s *Slug) Scan(src interface{}) error {
 	if src == nil {
 		*s = EmptySlug
