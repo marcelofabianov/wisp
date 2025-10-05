@@ -353,6 +353,62 @@ func main() {
 }
 ```
 
+## wisp-cli
+
+Para facilitar a exploração e o aprendizado do pacote `wisp`, foi criada uma ferramenta de linha de comando complementar, a **`wisp-cli`**.
+
+Com ela, você pode consultar rapidamente o conceito, ver um exemplo de código prático e obter o link para a documentação de qualquer tipo do pacote, diretamente no seu terminal e de forma offline.
+
+### Vantagens
+
+* **Consulta Rápida e Offline:** Obtenha informações instantaneamente sem precisar navegar pela documentação online.
+* **Exemplos Práticos:** Cada tipo vem com um exemplo de código executável que demonstra seu uso no mundo real.
+* **Entendimento Conceitual:** Além do código, a ferramenta fornece uma explicação rica sobre o "porquê" de cada *value object*, reforçando os princípios de design.
+
+### Instalação
+
+Você pode instalar a `wisp-cli` globalmente em sua máquina com um único comando:
+
+```sh
+go install github.com/marcelofabianov/wisp-cli/cmd/wisp@latest
+```
+
+**Exemplo de Uso**
+
+Após a instalação, basta chamar a CLI passando o nome do tipo que você deseja consultar.
+
+Para listar todos os tipos disponíveis:
+
+```sh
+wisp-cli cpf
+```
+
+Saída:
+
+```
+--- Conceito ---
+O wisp.CPF é um value object projetado para representar um Cadastro de Pessoas Físicas (CPF) de forma segura e canônica. Ele elimina os riscos de se usar uma string primitiva para um conceito de negócio tão importante.
+
+**Principais Funcionalidades e Garantias:**
+... (texto completo do conceito) ...
+
+--- Exemplo de Uso ---
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"[github.com/marcelofabianov/wisp](https://github.com/marcelofabianov/wisp)"
+)
+... (código completo do exemplo) ...
+
+--- Documentação ---
+Para mais detalhes, veja: [https://pkg.go.dev/github.com/marcelofabianov/wisp#CPF](https://pkg.go.dev/github.com/marcelofabianov/wisp#CPF)
+```
+
+*repositório do wisp-cli [github.com/marcelofabianov/wisp-cli](https://github.com/marcelofabianov/wisp-cli)*
+
 ## Contribuições
 
 Contribuições são bem-vindas! Sinta-se à vontade para abrir uma issue para discutir uma nova feature ou enviar um pull request.
