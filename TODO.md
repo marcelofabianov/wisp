@@ -7,6 +7,8 @@ Próximos types que podem vim para o pacote wisp
 - [ ] Language
 - [ ] Theme
 - [ ] Notification Channel
+- [ ] Estado Civil
+- [ ] Sexo
 
 Evolucoes de types
 

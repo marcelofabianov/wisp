@@ -9,20 +9,35 @@ import (
 	"github.com/marcelofabianov/fault"
 )
 
+// defaultPrecision is the global default number of decimal places for new quantities.
 var defaultPrecision = 3
 
+// SetDefaultPrecision sets the global default precision for the Quantity type.
+// This affects new quantities created without specifying a precision.
 func SetDefaultPrecision(p int) {
 	if p >= 0 {
 		defaultPrecision = p
 	}
 }
 
+// Quantity is a value object representing a numeric amount with a specific unit of measure.
+// It is designed to handle decimal values with a defined precision by storing the value as a scaled integer,
+// thus avoiding floating-point inaccuracies in calculations.
+//
+// The unit must be registered in the global `Unit` registry before use.
+//
+// Example:
+//   wisp.RegisterUnits("BOX")
+//   q, _ := wisp.NewQuantity(12.5, "BOX")
+//   price, _ := wisp.NewMoney(1000, wisp.BRL) // R$10.00 per box
+//   total, _ := q.MultiplyByMoney(price) // R$125.00
 type Quantity struct {
 	value     int64
 	unit      Unit
 	precision int
 }
 
+// newQuantity is the internal constructor for creating a Quantity with a specific precision.
 func newQuantity(value float64, unit Unit, precision int) (Quantity, error) {
 	if !unit.IsValid() {
 		return Quantity{}, fault.New(
@@ -50,30 +65,41 @@ func newQuantity(value float64, unit Unit, precision int) (Quantity, error) {
 	}, nil
 }
 
+// NewQuantity creates a new Quantity with a value and a unit, using the default precision.
+// The unit must be pre-registered.
+// Returns an error if the unit is not valid.
 func NewQuantity(value float64, unit Unit) (Quantity, error) {
 	return newQuantity(value, unit, defaultPrecision)
 }
 
+// NewQuantityWithPrecision creates a new Quantity with a specific precision.
+// The unit must be pre-registered.
+// Returns an error if the unit is not valid or precision is negative.
 func NewQuantityWithPrecision(value float64, unit Unit, precision int) (Quantity, error) {
 	return newQuantity(value, unit, precision)
 }
 
+// Value returns the scaled integer value of the quantity.
 func (q Quantity) Value() int64 {
 	return q.value
 }
 
+// Unit returns the unit of measure for the quantity.
 func (q Quantity) Unit() Unit {
 	return q.unit
 }
 
+// Precision returns the number of decimal places the quantity supports.
 func (q Quantity) Precision() int {
 	return q.precision
 }
 
+// IsZero returns true if the Quantity is the zero value.
 func (q Quantity) IsZero() bool {
 	return q.value == 0 && q.unit == ""
 }
 
+// Float64 returns the quantity's value as a float64, unscaled.
 func (q Quantity) Float64() float64 {
 	if q.precision == 0 {
 		return float64(q.value)
@@ -81,6 +107,8 @@ func (q Quantity) Float64() float64 {
 	return float64(q.value) / math.Pow10(q.precision)
 }
 
+// Add returns a new Quantity that is the sum of this quantity and another.
+// It returns an error if the units or precisions of the two quantities are different.
 func (q Quantity) Add(other Quantity) (Quantity, error) {
 	if q.unit != other.unit {
 		return Quantity{}, fault.New(
@@ -107,6 +135,8 @@ func (q Quantity) Add(other Quantity) (Quantity, error) {
 	}, nil
 }
 
+// MultiplyByMoney calculates the total cost by multiplying the quantity by a price per unit.
+// It returns a new Money instance representing the total value.
 func (q Quantity) MultiplyByMoney(pricePerUnit Money) (Money, error) {
 	if pricePerUnit.IsZero() {
 		return Money{amount: 0, currency: pricePerUnit.Currency()}, nil
@@ -118,6 +148,8 @@ func (q Quantity) MultiplyByMoney(pricePerUnit Money) (Money, error) {
 	return NewMoney(roundedAmount, pricePerUnit.Currency())
 }
 
+// MarshalJSON implements the json.Marshaler interface.
+// It serializes the Quantity to a JSON object with its float value and unit.
 func (q Quantity) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		Value float64 `json:"value"`
@@ -128,13 +160,15 @@ func (q Quantity) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// It deserializes a JSON object into a Quantity, automatically detecting precision from the value.
 func (q *Quantity) UnmarshalJSON(data []byte) error {
 	dto := &struct {
 		Value float64 `json:"value"`
 		Unit  Unit    `json:"unit"`
 	}{}
 
-	if err := json.Unmarshal(data, dto); err != nil {
+	if err := json.Unmarshal(data, &dto); err != nil {
 		return fault.Wrap(err, "invalid JSON format for Quantity", fault.WithCode(fault.Invalid))
 	}
 

@@ -15,12 +15,24 @@ const (
 	minutesInDay  = 24 * minutesInHour
 )
 
+// TimeOfDay represents a specific time of day (hour and minute), independent of any date or timezone.
+// It is stored as the number of minutes from midnight, which simplifies comparisons and calculations.
+// This value object is useful for representing schedules, business hours, or any time-based logic.
+//
+// The zero value is ZeroTimeOfDay, representing 00:00.
+//
+// Examples:
+//   t, err := NewTimeOfDay(9, 30) // 09:30
+//   t, err := ParseTimeOfDay("17:00") // 17:00
 type TimeOfDay struct {
 	minutesFromMidnight int
 }
 
+// ZeroTimeOfDay represents the zero value for TimeOfDay (00:00).
 var ZeroTimeOfDay = TimeOfDay{}
 
+// NewTimeOfDay creates a new TimeOfDay from an hour and minute.
+// It returns an error if the hour is not between 0-23 or the minute is not between 0-59.
 func NewTimeOfDay(hour, minute int) (TimeOfDay, error) {
 	if hour < 0 || hour > 23 || minute < 0 || minute > 59 {
 		return ZeroTimeOfDay, fault.New(
@@ -34,6 +46,8 @@ func NewTimeOfDay(hour, minute int) (TimeOfDay, error) {
 	return TimeOfDay{minutesFromMidnight: totalMinutes}, nil
 }
 
+// ParseTimeOfDay creates a new TimeOfDay by parsing a string in HH:MM format.
+// It returns an error if the string is not in the correct format.
 func ParseTimeOfDay(s string) (TimeOfDay, error) {
 	trimmed := strings.TrimSpace(s)
 
@@ -62,26 +76,33 @@ func ParseTimeOfDay(s string) (TimeOfDay, error) {
 	return NewTimeOfDay(h, m)
 }
 
+// Hour returns the hour component of the time (0-23).
 func (t TimeOfDay) Hour() int {
 	return t.minutesFromMidnight / minutesInHour
 }
 
+// Minute returns the minute component of the time (0-59).
 func (t TimeOfDay) Minute() int {
 	return t.minutesFromMidnight % minutesInHour
 }
 
+// IsZero returns true if the TimeOfDay is the zero value (00:00).
 func (t TimeOfDay) IsZero() bool {
 	return t.minutesFromMidnight == 0
 }
 
+// Before checks if this TimeOfDay is before another.
 func (t TimeOfDay) Before(other TimeOfDay) bool {
 	return t.minutesFromMidnight < other.minutesFromMidnight
 }
 
+// After checks if this TimeOfDay is after another.
 func (t TimeOfDay) After(other TimeOfDay) bool {
 	return t.minutesFromMidnight > other.minutesFromMidnight
 }
 
+// MustNewTimeOfDay is like NewTimeOfDay but panics if the time is invalid.
+// This is useful for initializing constant-like time values.
 func MustNewTimeOfDay(hour, minute int) TimeOfDay {
 	tod, err := NewTimeOfDay(hour, minute)
 	if err != nil {
@@ -90,14 +111,19 @@ func MustNewTimeOfDay(hour, minute int) TimeOfDay {
 	return tod
 }
 
+// String returns the time formatted as an HH:MM string.
 func (t TimeOfDay) String() string {
 	return fmt.Sprintf("%02d:%02d", t.Hour(), t.Minute())
 }
 
+// MarshalJSON implements the json.Marshaler interface.
+// It serializes the TimeOfDay as an HH:MM formatted JSON string.
 func (t TimeOfDay) MarshalJSON() ([]byte, error) {
 	return json.Marshal(t.String())
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// It deserializes a JSON string in HH:MM format into a TimeOfDay.
 func (t *TimeOfDay) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
@@ -111,10 +137,14 @@ func (t *TimeOfDay) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Value implements the driver.Valuer interface for database storage.
+// It returns the time as the total number of minutes from midnight.
 func (t TimeOfDay) Value() (driver.Value, error) {
 	return int64(t.minutesFromMidnight), nil
 }
 
+// Scan implements the sql.Scanner interface for database retrieval.
+// It accepts an integer (minutes from midnight) from the database and converts it into a TimeOfDay.
 func (t *TimeOfDay) Scan(src interface{}) error {
 	if src == nil {
 		*t = ZeroTimeOfDay

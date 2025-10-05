@@ -60,22 +60,28 @@ func NewMoney(amountInCents int64, currency Currency) (Money, error) {
 	}, nil
 }
 
+// Amount returns the monetary amount in the smallest currency unit (e.g., cents).
 func (m Money) Amount() int64 {
 	return m.amount
 }
 
+// Currency returns the currency of the monetary amount.
 func (m Money) Currency() Currency {
 	return m.currency
 }
 
+// IsZero returns true if the Money is the zero value (ZeroMoney).
 func (m Money) IsZero() bool {
 	return m == ZeroMoney
 }
 
+// Equals checks if two Money instances are equal by comparing both amount and currency.
 func (m Money) Equals(other Money) bool {
 	return m.amount == other.amount && m.currency == other.currency
 }
 
+// GreaterThan checks if the Money is greater than another.
+// Returns an error if the currencies are different.
 func (m Money) GreaterThan(other Money) (bool, error) {
 	if m.currency != other.currency {
 		return false, fault.New(
@@ -88,6 +94,8 @@ func (m Money) GreaterThan(other Money) (bool, error) {
 	return m.amount > other.amount, nil
 }
 
+// LessThan checks if the Money is less than another.
+// Returns an error if the currencies are different.
 func (m Money) LessThan(other Money) (bool, error) {
 	if m.currency != other.currency {
 		return false, fault.New(
@@ -100,6 +108,8 @@ func (m Money) LessThan(other Money) (bool, error) {
 	return m.amount < other.amount, nil
 }
 
+// Add returns a new Money instance with the sum of two amounts.
+// Returns an error if the currencies are different.
 func (m Money) Add(other Money) (Money, error) {
 	if m.currency != other.currency {
 		return ZeroMoney, fault.New(
@@ -115,6 +125,8 @@ func (m Money) Add(other Money) (Money, error) {
 	}, nil
 }
 
+// Subtract returns a new Money instance with the difference of two amounts.
+// Returns an error if the currencies are different.
 func (m Money) Subtract(other Money) (Money, error) {
 	if m.currency != other.currency {
 		return ZeroMoney, fault.New(
@@ -130,6 +142,8 @@ func (m Money) Subtract(other Money) (Money, error) {
 	}, nil
 }
 
+// Multiply returns a new Money instance with the amount multiplied by a factor.
+// This operation is useful for calculations like quantity * price.
 func (m Money) Multiply(multiplier int64) Money {
 	return Money{
 		amount:   m.amount * multiplier,
@@ -137,6 +151,10 @@ func (m Money) Multiply(multiplier int64) Money {
 	}
 }
 
+// Split divides the Money into n parts, distributing any remainder.
+// This is useful for scenarios like splitting a bill among several people.
+// The remainder is distributed one by one to the first parts.
+// Returns an error if n is not a positive number.
 func (m Money) Split(n int) ([]Money, error) {
 	if n <= 0 {
 		return nil, fault.New(
@@ -161,18 +179,25 @@ func (m Money) Split(n int) ([]Money, error) {
 	return parts, nil
 }
 
+// IsNegative returns true if the monetary amount is negative.
 func (m Money) IsNegative() bool {
 	return m.amount < 0
 }
 
+// Float64 returns the monetary amount as a float64, converting from cents.
+// Note: Use with caution, as floating-point arithmetic can lead to precision issues.
+// This is primarily for display or interoperability, not for financial calculations.
 func (m Money) Float64() float64 {
 	return float64(m.amount) / 100.0
 }
 
+// String returns a formatted string representation of the money, like "BRL 10.50".
 func (m Money) String() string {
 	return fmt.Sprintf("%s %.2f", m.currency, m.Float64())
 }
 
+// MarshalJSON implements the json.Marshaler interface.
+// It serializes Money into a JSON object with "amount" and "currency" fields.
 func (m Money) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		Amount   int64    `json:"amount"`
@@ -183,6 +208,8 @@ func (m Money) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// It deserializes a JSON object into a Money instance, validating the currency.
 func (m *Money) UnmarshalJSON(data []byte) error {
 	dto := &struct {
 		Amount   int64    `json:"amount"`

@@ -9,8 +9,18 @@ import (
 	"github.com/marcelofabianov/fault"
 )
 
+// DayOfWeek is a value object representing a day of the week (Sunday, Monday, etc.).
+// It is an alias for time.Weekday, providing type safety and useful methods.
+// This type ensures that only valid days of the week are used.
+//
+// It can be parsed from a string and implements JSON and database interfaces.
+//
+// Examples:
+//   dow, err := ParseDayOfWeek("Monday")
+//   isWeekend := dow.IsWeekend()
 type DayOfWeek time.Weekday
 
+// Constants representing each day of the week.
 const (
 	Sunday    DayOfWeek = DayOfWeek(time.Sunday)
 	Monday    DayOfWeek = DayOfWeek(time.Monday)
@@ -21,6 +31,7 @@ const (
 	Saturday  DayOfWeek = DayOfWeek(time.Saturday)
 )
 
+// dayOfWeekMap provides a lookup from a lowercase string to a DayOfWeek constant.
 var dayOfWeekMap = map[string]DayOfWeek{
 	"sunday":    Sunday,
 	"monday":    Monday,
@@ -31,6 +42,9 @@ var dayOfWeekMap = map[string]DayOfWeek{
 	"saturday":  Saturday,
 }
 
+// ParseDayOfWeek creates a DayOfWeek from a string (e.g., "Monday").
+// The input is case-insensitive.
+// Returns an error if the string is not a valid day of the week.
 func ParseDayOfWeek(s string) (DayOfWeek, error) {
 	d, ok := dayOfWeekMap[strings.ToLower(strings.TrimSpace(s))]
 	if !ok {
@@ -43,26 +57,34 @@ func ParseDayOfWeek(s string) (DayOfWeek, error) {
 	return d, nil
 }
 
+// Weekday returns the underlying time.Weekday value.
 func (d DayOfWeek) Weekday() time.Weekday {
 	return time.Weekday(d)
 }
 
+// IsWeekend returns true if the day is Saturday or Sunday.
 func (d DayOfWeek) IsWeekend() bool {
 	return d == Saturday || d == Sunday
 }
 
+// IsWeekday returns true if the day is not a weekend day (Monday to Friday).
 func (d DayOfWeek) IsWeekday() bool {
 	return !d.IsWeekend()
 }
 
+// String returns the English name of the day of the week (e.g., "Monday").
 func (d DayOfWeek) String() string {
 	return d.Weekday().String()
 }
 
+// MarshalJSON implements the json.Marshaler interface.
+// It serializes the DayOfWeek as a lowercase JSON string (e.g., "monday").
 func (d DayOfWeek) MarshalJSON() ([]byte, error) {
 	return json.Marshal(strings.ToLower(d.String()))
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// It deserializes a JSON string into a DayOfWeek, with validation.
 func (d *DayOfWeek) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
@@ -77,10 +99,14 @@ func (d *DayOfWeek) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Value implements the driver.Valuer interface for database storage.
+// It returns the DayOfWeek as an integer (where Sunday=0, Monday=1, etc.).
 func (d DayOfWeek) Value() (driver.Value, error) {
 	return int64(d), nil
 }
 
+// Scan implements the sql.Scanner interface for database retrieval.
+// It accepts an integer from the database and converts it into a DayOfWeek.
 func (d *DayOfWeek) Scan(src interface{}) error {
 	if src == nil {
 		*d = 0 // Sunday

@@ -7,13 +7,26 @@ import (
 	"github.com/marcelofabianov/fault"
 )
 
+// TimeRange represents a period between a start and an end time of day.
+// It is a value object that ensures the start time is strictly before the end time.
+// This is useful for defining periods like business hours or appointment slots.
+//
+// The range is exclusive of the end time, i.e., [start, end).
+//
+// Examples:
+//   start, _ := NewTimeOfDay(9, 0)
+//   end, _ := NewTimeOfDay(17, 0)
+//   tr, err := NewTimeRange(start, end) // Represents 09:00 to 17:00
 type TimeRange struct {
 	start TimeOfDay
 	end   TimeOfDay
 }
 
+// ZeroTimeRange represents the zero value for the TimeRange type.
 var ZeroTimeRange = TimeRange{}
 
+// NewTimeRange creates a new TimeRange from a start and end TimeOfDay.
+// It returns an error if the start time is not before the end time.
 func NewTimeRange(start, end TimeOfDay) (TimeRange, error) {
 	if !start.Before(end) {
 		return ZeroTimeRange, fault.New(
@@ -26,26 +39,34 @@ func NewTimeRange(start, end TimeOfDay) (TimeRange, error) {
 	return TimeRange{start: start, end: end}, nil
 }
 
+// Start returns the start time of the range.
 func (tr TimeRange) Start() TimeOfDay {
 	return tr.start
 }
 
+// End returns the end time of the range.
 func (tr TimeRange) End() TimeOfDay {
 	return tr.end
 }
 
+// IsZero returns true if the TimeRange is the zero value.
 func (tr TimeRange) IsZero() bool {
 	return tr.start.IsZero() && tr.end.IsZero()
 }
 
+// Contains checks if a given TimeOfDay is within the time range.
+// The check is inclusive of the start time and exclusive of the end time: [start, end).
 func (tr TimeRange) Contains(t TimeOfDay) bool {
 	return !t.Before(tr.start) && t.Before(tr.end)
 }
 
+// String returns a formatted string representation of the time range, like "HH:MM-HH:MM".
 func (tr TimeRange) String() string {
 	return fmt.Sprintf("%s-%s", tr.start.String(), tr.end.String())
 }
 
+// MarshalJSON implements the json.Marshaler interface.
+// It serializes the TimeRange into a JSON object with "start" and "end" fields.
 func (tr TimeRange) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		Start string `json:"start"`
@@ -56,6 +77,8 @@ func (tr TimeRange) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// It deserializes a JSON object with "start" and "end" fields into a TimeRange.
 func (tr *TimeRange) UnmarshalJSON(data []byte) error {
 	dto := &struct {
 		Start string `json:"start"`

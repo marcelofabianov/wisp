@@ -6,14 +6,27 @@ import (
 	"github.com/marcelofabianov/fault"
 )
 
+// RangedValue is a value object representing a value that must stay within a `[min, max]` range.
+// It combines the concepts of MinValue and BoundedValue, enforcing both a lower and an upper bound.
+// This is useful for any value that has a defined, inclusive range, such as a rating from 1 to 5.
+//
+// All operations are immutable, returning a new RangedValue instance.
+//
+// Example:
+//   rating, _ := NewRangedValue(4, 1, 5) // A rating of 4 on a scale of 1-5
+//   newRating, _ := rating.Add(1) // 5/5
+//   isMax := newRating.IsAtMax() // true
 type RangedValue struct {
 	current int64
 	min     int64
 	max     int64
 }
 
+// ZeroRangedValue represents the zero value for RangedValue.
 var ZeroRangedValue = RangedValue{}
 
+// NewRangedValue creates a new RangedValue.
+// It returns an error if min > max, or if the current value is outside the [min, max] range.
 func NewRangedValue(current, min, max int64) (RangedValue, error) {
 	if min > max {
 		return ZeroRangedValue, fault.New("min value cannot be greater than max value", fault.WithCode(fault.Invalid))
@@ -30,26 +43,33 @@ func NewRangedValue(current, min, max int64) (RangedValue, error) {
 	return RangedValue{current: current, min: min, max: max}, nil
 }
 
+// Current returns the current value.
 func (rv RangedValue) Current() int64 {
 	return rv.current
 }
 
+// Min returns the minimum allowed value.
 func (rv RangedValue) Min() int64 {
 	return rv.min
 }
 
+// Max returns the maximum allowed value.
 func (rv RangedValue) Max() int64 {
 	return rv.max
 }
 
+// IsAtMin returns true if the current value is equal to the minimum value.
 func (rv RangedValue) IsAtMin() bool {
 	return rv.current == rv.min
 }
 
+// IsAtMax returns true if the current value is equal to the maximum value.
 func (rv RangedValue) IsAtMax() bool {
 	return rv.current == rv.max
 }
 
+// Add returns a new RangedValue with the amount added to the current value.
+// It returns an error if the amount is negative or if the operation would exceed the max value.
 func (rv RangedValue) Add(amount int64) (RangedValue, error) {
 	if amount < 0 {
 		return ZeroRangedValue, fault.New("amount to add must be non-negative", fault.WithCode(fault.Invalid))
@@ -60,6 +80,8 @@ func (rv RangedValue) Add(amount int64) (RangedValue, error) {
 	return RangedValue{current: rv.current + amount, min: rv.min, max: rv.max}, nil
 }
 
+// Subtract returns a new RangedValue with the amount subtracted from the current value.
+// It returns an error if the amount is negative or if the operation would fall below the min value.
 func (rv RangedValue) Subtract(amount int64) (RangedValue, error) {
 	if amount < 0 {
 		return ZeroRangedValue, fault.New("amount to subtract must be non-negative", fault.WithCode(fault.Invalid))
@@ -70,6 +92,8 @@ func (rv RangedValue) Subtract(amount int64) (RangedValue, error) {
 	return RangedValue{current: rv.current - amount, min: rv.min, max: rv.max}, nil
 }
 
+// Set returns a new RangedValue with the current value set to a new value.
+// It returns an error if the new value is outside the allowed [min, max] range.
 func (rv RangedValue) Set(newValue int64) (RangedValue, error) {
 	if newValue < rv.min || newValue > rv.max {
 		return ZeroRangedValue, fault.New("new value is outside the allowed range", fault.WithCode(fault.Invalid))
@@ -77,6 +101,8 @@ func (rv RangedValue) Set(newValue int64) (RangedValue, error) {
 	return RangedValue{current: newValue, min: rv.min, max: rv.max}, nil
 }
 
+// MarshalJSON implements the json.Marshaler interface.
+// It serializes the RangedValue to a JSON object with "current", "min", and "max" fields.
 func (rv RangedValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		Current int64 `json:"current"`
@@ -89,6 +115,8 @@ func (rv RangedValue) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// It deserializes a JSON object into a RangedValue, with validation.
 func (rv *RangedValue) UnmarshalJSON(data []byte) error {
 	dto := &struct {
 		Current int64 `json:"current"`

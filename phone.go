@@ -10,12 +10,25 @@ import (
 	"github.com/marcelofabianov/fault"
 )
 
+// Phone is a value object representing a Brazilian phone number.
+// It stores the number in a normalized E.164-like format (e.g., "5511987654321"),
+// including the country code (55 for Brazil), area code (DDD), and the local number.
+//
+// The type validates the DDD, the number of digits for mobile vs. landline, and the mobile prefix.
+//
+// Examples:
+//   - Input: "(11) 98765-4321"
+//   - Stored as: "5511987654321"
+//   - Formatted output: "+55 (11) 98765-4321"
 type Phone string
 
+// EmptyPhone represents the zero value for the Phone type.
 var EmptyPhone Phone
 
-var nonDigitRegex = regexp.MustCompile(`\D+`)
+// nonDigitRegex is used to remove all non-numeric characters from a phone number string.
+var nonDigitRegex = regexp.MustCompile(`\\D+`)
 
+// validDDDs is the set of all valid Brazilian area codes (DDD).
 var validDDDs = map[string]struct{}{
 	"11": {}, "12": {}, "13": {}, "14": {}, "15": {}, "16": {}, "17": {}, "18": {}, "19": {},
 	"21": {}, "22": {}, "24": {}, "27": {}, "28": {},
@@ -28,6 +41,7 @@ var validDDDs = map[string]struct{}{
 	"91": {}, "92": {}, "93": {}, "94": {}, "95": {}, "96": {}, "97": {}, "98": {}, "99": {},
 }
 
+// parsePhone contains the core logic for validating and normalizing a Brazilian phone number.
 func parsePhone(input string) (Phone, error) {
 	if input == "" {
 		return EmptyPhone, nil
@@ -67,14 +81,20 @@ func parsePhone(input string) (Phone, error) {
 	return Phone(sanitized), nil
 }
 
+// NewPhone creates a new Phone from a string.
+// It sanitizes the input by removing non-digit characters, validates the length,
+// ensures the Brazilian country code (55) is present, and validates the area code (DDD) and number format.
+// It returns an error if the phone number is invalid in any of these ways.
 func NewPhone(input string) (Phone, error) {
 	return parsePhone(input)
 }
 
+// String returns the normalized phone number as a string (e.g., "5511987654321").
 func (p Phone) String() string {
 	return string(p)
 }
 
+// CountryCode returns the country code part of the number.
 func (p Phone) CountryCode() string {
 	if p.IsZero() || len(p) < 2 {
 		return ""
@@ -82,6 +102,7 @@ func (p Phone) CountryCode() string {
 	return string(p[0:2])
 }
 
+// AreaCode returns the area code (DDD) part of the number.
 func (p Phone) AreaCode() string {
 	if p.IsZero() || len(p) < 4 {
 		return ""
@@ -89,6 +110,7 @@ func (p Phone) AreaCode() string {
 	return string(p[2:4])
 }
 
+// Number returns the local number part (without country or area code).
 func (p Phone) Number() string {
 	if p.IsZero() || len(p) < 4 {
 		return ""
@@ -96,18 +118,24 @@ func (p Phone) Number() string {
 	return string(p[4:])
 }
 
+// IsZero returns true if the Phone is the zero value.
 func (p Phone) IsZero() bool {
 	return p == EmptyPhone
 }
 
+// IsMobile returns true if the phone number is identified as a mobile number (9 digits).
 func (p Phone) IsMobile() bool {
 	return !p.IsZero() && len(p.Number()) == 9
 }
 
+// IsLandline returns true if the phone number is identified as a landline number (8 digits).
 func (p Phone) IsLandline() bool {
 	return !p.IsZero() && len(p.Number()) == 8
 }
 
+// Formatted returns the phone number in a human-readable format.
+// Mobile: "+55 (11) 98765-4321"
+// Landline: "+55 (11) 4321-5432"
 func (p Phone) Formatted() string {
 	if p.IsZero() {
 		return ""
@@ -119,10 +147,14 @@ func (p Phone) Formatted() string {
 	return fmt.Sprintf("+%s (%s) %s-%s", p.CountryCode(), p.AreaCode(), number[:4], number[4:])
 }
 
+// MarshalJSON implements the json.Marshaler interface.
+// It serializes the Phone to its normalized string representation.
 func (p Phone) MarshalJSON() ([]byte, error) {
 	return json.Marshal(p.String())
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// It deserializes a JSON string into a Phone, with validation.
 func (p *Phone) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
@@ -136,6 +168,8 @@ func (p *Phone) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Value implements the driver.Valuer interface for database storage.
+// It returns the normalized phone number as a string.
 func (p Phone) Value() (driver.Value, error) {
 	if p.IsZero() {
 		return nil, nil
@@ -143,6 +177,8 @@ func (p Phone) Value() (driver.Value, error) {
 	return p.String(), nil
 }
 
+// Scan implements the sql.Scanner interface for database retrieval.
+// It accepts a string or byte slice from the database and converts it into a Phone, with validation.
 func (p *Phone) Scan(src interface{}) error {
 	if src == nil {
 		*p = EmptyPhone

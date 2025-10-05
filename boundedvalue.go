@@ -6,15 +6,30 @@ import (
 	"github.com/marcelofabianov/fault"
 )
 
+// ErrValueExceedsMax is a standard error returned when an operation on a BoundedValue
+// would cause its current value to exceed its maximum allowed value.
 var ErrValueExceedsMax = fault.New("operation would exceed the maximum value", fault.WithCode(fault.Conflict))
 
+// BoundedValue is a value object representing a value that must stay within a `[0, max]` range.
+// It is useful for modeling concepts like health points, energy levels, or inventory stock
+// where a value cannot exceed a maximum capacity or fall below zero.
+//
+// All operations are immutable, returning a new BoundedValue instance.
+//
+// Example:
+//   health, _ := NewBoundedValue(80, 100) // 80/100 HP
+//   healed, _ := health.Add(15) // 95/100 HP
+//   isFull := healed.IsFull() // false
 type BoundedValue struct {
 	current int64
 	max     int64
 }
 
+// ZeroBoundedValue represents the zero value for BoundedValue.
 var ZeroBoundedValue = BoundedValue{}
 
+// NewBoundedValue creates a new BoundedValue.
+// It returns an error if the max value is negative, or if the current value is negative or exceeds the max.
 func NewBoundedValue(current, max int64) (BoundedValue, error) {
 	if max < 0 {
 		return ZeroBoundedValue, fault.New("maximum value cannot be negative", fault.WithCode(fault.Invalid))
@@ -33,26 +48,33 @@ func NewBoundedValue(current, max int64) (BoundedValue, error) {
 	return BoundedValue{current: current, max: max}, nil
 }
 
+// Current returns the current value.
 func (bv BoundedValue) Current() int64 {
 	return bv.current
 }
 
+// Max returns the maximum allowed value.
 func (bv BoundedValue) Max() int64 {
 	return bv.max
 }
 
+// AvailableSpace returns the difference between the max and current values.
 func (bv BoundedValue) AvailableSpace() int64 {
 	return bv.max - bv.current
 }
 
+// IsFull returns true if the current value is equal to the maximum value.
 func (bv BoundedValue) IsFull() bool {
 	return bv.current == bv.max
 }
 
+// IsZero returns true if the BoundedValue is the zero value.
 func (bv BoundedValue) IsZero() bool {
 	return bv.current == 0 && bv.max == 0
 }
 
+// Add returns a new BoundedValue with the amount added to the current value.
+// It returns an error if the amount is negative or if the operation would exceed the max value.
 func (bv BoundedValue) Add(amount int64) (BoundedValue, error) {
 	if amount < 0 {
 		return ZeroBoundedValue, fault.New("amount to add must be non-negative", fault.WithCode(fault.Invalid))
@@ -63,6 +85,8 @@ func (bv BoundedValue) Add(amount int64) (BoundedValue, error) {
 	return BoundedValue{current: bv.current + amount, max: bv.max}, nil
 }
 
+// Subtract returns a new BoundedValue with the amount subtracted from the current value.
+// It returns an error if the amount is negative or if the operation would result in a value below zero.
 func (bv BoundedValue) Subtract(amount int64) (BoundedValue, error) {
 	if amount < 0 {
 		return ZeroBoundedValue, fault.New("amount to subtract must be non-negative", fault.WithCode(fault.Invalid))
@@ -73,6 +97,8 @@ func (bv BoundedValue) Subtract(amount int64) (BoundedValue, error) {
 	return BoundedValue{current: bv.current - amount, max: bv.max}, nil
 }
 
+// Set returns a new BoundedValue with the current value set to a new value.
+// It returns an error if the new value is outside the valid [0, max] range.
 func (bv BoundedValue) Set(newValue int64) (BoundedValue, error) {
 	if newValue < 0 || newValue > bv.max {
 		return ZeroBoundedValue, fault.New("new value is outside the allowed [0, max] range", fault.WithCode(fault.Invalid))
@@ -80,6 +106,8 @@ func (bv BoundedValue) Set(newValue int64) (BoundedValue, error) {
 	return BoundedValue{current: newValue, max: bv.max}, nil
 }
 
+// MarshalJSON implements the json.Marshaler interface.
+// It serializes the BoundedValue to a JSON object with "current" and "max" fields.
 func (bv BoundedValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		Current int64 `json:"current"`
@@ -90,6 +118,8 @@ func (bv BoundedValue) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// It deserializes a JSON object into a BoundedValue, with validation.
 func (bv *BoundedValue) UnmarshalJSON(data []byte) error {
 	dto := &struct {
 		Current int64 `json:"current"`
