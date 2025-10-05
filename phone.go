@@ -26,7 +26,7 @@ type Phone string
 var EmptyPhone Phone
 
 // nonDigitRegex is used to remove all non-numeric characters from a phone number string.
-var nonDigitRegex = regexp.MustCompile(`\\D+`)
+var nonDigitRegex = regexp.MustCompile(`\D+`)
 
 // validDDDs is the set of all valid Brazilian area codes (DDD).
 var validDDDs = map[string]struct{}{

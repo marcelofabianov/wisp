@@ -32,7 +32,7 @@ func (s *PhoneSuite) TestNewPhone() {
 		{name: "should create a valid mobile phone assuming country code", input: "62982870053", expected: "5562982870053"},
 		{name: "should create a valid landline phone", input: "(11) 4567-1234", expected: "551145671234"},
 		{name: "should create an empty phone from an empty string", input: "", expected: wisp.EmptyPhone},
-
+		{name: "should create a valid mobile phone from E.164 format with plus sign", input: "+5562982870053", expected: "5562982870053"},
 		// Error Paths
 		{name: "should fail for number too short", input: "6298287", expectError: true, errCode: fault.Invalid},
 		{name: "should fail for number too long", input: "5562982870053123", expectError: true, errCode: fault.Invalid},
