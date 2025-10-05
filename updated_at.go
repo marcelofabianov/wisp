@@ -14,7 +14,8 @@ import (
 // This is essential for audit trails and optimistic concurrency control.
 //
 // Example:
-//   myObject.UpdatedAt.Touch() // Updates the timestamp to the current time
+//
+//	myObject.UpdatedAt.Touch() // Updates the timestamp to the current time
 type UpdatedAt time.Time
 
 // NewUpdatedAt creates a new UpdatedAt timestamp, capturing the current time in UTC.
@@ -31,6 +32,13 @@ func (u *UpdatedAt) Touch() {
 // Time returns the underlying time.Time value.
 func (u UpdatedAt) Time() time.Time {
 	return time.Time(u)
+}
+
+// RFC3339 returns the timestamp in RFC3339 format (ISO 8601).
+// This is the standard format for API responses.
+// Example: "2025-10-05T22:38:09.924551Z"
+func (c CreatedAt) RFC3339() string {
+	return c.Time().Format(time.RFC3339Nano)
 }
 
 // MarshalJSON implements the json.Marshaler interface.
