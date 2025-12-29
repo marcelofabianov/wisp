@@ -34,7 +34,7 @@ func (s *RoleSuite) TestRegisterAndValidateRoles() {
 }
 
 func (s *RoleSuite) TestNewRole() {
-	wisp.RegisterRoles("ADMIN", "EDITOR")
+	wisp.RegisterRoles("ADMIN", "editor")
 
 	testCases := []struct {
 		name        string
@@ -43,7 +43,7 @@ func (s *RoleSuite) TestNewRole() {
 		expectError bool
 	}{
 		{name: "should create a valid role", input: "ADMIN", expected: "ADMIN"},
-		{name: "should create and normalize a valid role", input: "  editor  ", expected: "EDITOR"},
+		{name: "should create a valid role preserving case", input: "  editor  ", expected: "editor"},
 		{name: "should create an empty role from an empty string", input: "", expected: wisp.EmptyRole},
 		{name: "should create an empty role from a blank string", input: "   ", expected: wisp.EmptyRole},
 		{name: "should fail for an unregistered role", input: "GUEST", expectError: true},

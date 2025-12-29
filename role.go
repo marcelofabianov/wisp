@@ -6,17 +6,20 @@ import (
 	"github.com/marcelofabianov/fault"
 )
 
-// Role is a value object representing a user role within the system (e.g., "ADMIN", "USER").
-// It ensures that only explicitly defined and registered roles are used, providing type safety
-// for authorization and access control logic.
+// Role is a value object representing a user role within the system (e.g., "admin", "USER").
+// It ensures that only explicitly defined and registered roles are used, providing type
+// safety for authorization and access control logic.
 //
-// All valid roles must be registered in a global allow-list before they can be used.
-// Roles are stored in a normalized (uppercase) format.
+// All valid roles must be registered in a global registry before they can be used.
+// Roles are stored in a case-preserving format: both lowercase and uppercase values
+// are allowed and kept as provided when registered or created. Registration and
+// validation are exact-match (case-sensitive) against the registered values.
 //
 // Example:
-//   wisp.RegisterRoles("ADMIN", "USER", "GUEST")
-//   r, err := wisp.NewRole("admin")
-//   isAdmin := r == "ADMIN"
+//
+//	wisp.RegisterRoles("admin", "USER", "Guest")
+//	r, err := wisp.NewRole("admin")
+//	isAdmin := r == "admin"
 type Role string
 
 // validRoles holds the global set of registered roles.
@@ -26,11 +29,10 @@ var validRoles = make(map[Role]struct{})
 var EmptyRole Role
 
 // RegisterRoles adds one or more roles to the global registry of valid roles.
-// It normalizes them to uppercase and trims whitespace.
 // This function should be called at application startup to define all possible user roles.
 func RegisterRoles(roles ...Role) {
 	for _, r := range roles {
-		normalized := Role(strings.ToUpper(strings.TrimSpace(string(r))))
+		normalized := Role(strings.TrimSpace(string(r)))
 		if normalized != "" {
 			validRoles[normalized] = struct{}{}
 		}
@@ -41,7 +43,7 @@ func RegisterRoles(roles ...Role) {
 // It normalizes the input to uppercase and validates it against the global registry.
 // Returns an error if the role is not registered.
 func NewRole(value string) (Role, error) {
-	normalized := Role(strings.ToUpper(strings.TrimSpace(value)))
+	normalized := Role(strings.TrimSpace(string(value)))
 	if normalized == EmptyRole {
 		return EmptyRole, nil
 	}
