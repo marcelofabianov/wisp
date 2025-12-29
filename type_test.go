@@ -22,14 +22,14 @@ func (s *TypeSuite) SetupTest() {
 
 func (s *TypeSuite) TestRegisterAndValidateType() {
 	const (
-		TypeInvoice  wisp.Type = "INVOICE"
-		TypeReceipt  wisp.Type = "RECEIPT"
-		TypeContract wisp.Type = "CONTRACT"
+		TypeInvoice  wisp.Type = "invoice"
+		TypeReceipt  wisp.Type = "receipt"
+		TypeContract wisp.Type = "contract"
 	)
 	wisp.RegisterTypes(TypeInvoice, TypeReceipt, TypeContract)
 
-	s.Run("NewType should create a valid type that is registered", func() {
-		docType, err := wisp.NewType("invoice")
+	s.Run("NewType should create a valid type that is registered regardless of input case", func() {
+		docType, err := wisp.NewType("INVOICE")
 		s.Require().NoError(err)
 		s.Equal(TypeInvoice, docType)
 	})
@@ -46,43 +46,43 @@ func (s *TypeSuite) TestRegisterAndValidateType() {
 		s.Require().Error(err)
 	})
 
-	s.Run("IsValid should work correctly", func() {
-		s.True(wisp.Type("INVOICE").IsValid())
+	s.Run("IsValid should work correctly with lowercase identifiers", func() {
+		s.True(wisp.Type("invoice").IsValid())
 		s.False(wisp.Type("MEMO").IsValid())
 	})
 }
 
 func (s *TypeSuite) TestType_JSON_SQL() {
-	const TypePayment wisp.Type = "PAYMENT"
+	const TypePayment wisp.Type = "payment"
 	wisp.RegisterTypes(TypePayment)
-	paymentType, _ := wisp.NewType("payment")
+	paymentType, _ := wisp.NewType("PAYMENT")
 
-	s.Run("JSON Marshaling/Unmarshaling", func() {
+	s.Run("JSON Marshaling/Unmarshaling should use lowercase", func() {
 		data, err := json.Marshal(paymentType)
 		s.Require().NoError(err)
-		s.Equal(`"PAYMENT"`, string(data))
+		s.Equal(`"payment"`, string(data))
 
 		var unmarshaledType wisp.Type
 		err = json.Unmarshal(data, &unmarshaledType)
 		s.Require().NoError(err)
 		s.Equal(paymentType, unmarshaledType)
 
-		invalidJSON := `"REFUND"`
+		invalidJSON := `"refund"`
 		err = json.Unmarshal([]byte(invalidJSON), &unmarshaledType)
 		s.Require().Error(err)
 	})
 
-	s.Run("SQL Value/Scan", func() {
+	s.Run("SQL Value/Scan should use lowercase", func() {
 		val, err := paymentType.Value()
 		s.Require().NoError(err)
-		s.Equal("PAYMENT", val.(string))
+		s.Equal("payment", val.(string))
 
 		var scannedType wisp.Type
-		err = scannedType.Scan("PAYMENT")
+		err = scannedType.Scan("payment")
 		s.Require().NoError(err)
 		s.Equal(paymentType, scannedType)
 
-		err = scannedType.Scan("VOID")
+		err = scannedType.Scan("void")
 		s.Require().Error(err)
 	})
 }
