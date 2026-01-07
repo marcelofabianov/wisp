@@ -1,7 +1,9 @@
 package wisp
 
 import (
+	"database/sql/driver"
 	"encoding/json"
+	"fmt"
 
 	"github.com/marcelofabianov/fault"
 )
@@ -114,5 +116,52 @@ func (mv *MinValue) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*mv = newMv
+	return nil
+}
+
+// Value implements the driver.Valuer interface for database storage.
+// It returns the MinValue as a JSON string or nil if it's the zero value.
+func (mv MinValue) Value() (driver.Value, error) {
+	if mv.current == 0 && mv.min == 0 {
+		return nil, nil
+	}
+
+	data, err := mv.MarshalJSON()
+	if err != nil {
+		return nil, fault.Wrap(err,
+			"failed to marshal min value for database storage",
+			fault.WithCode(fault.Internal),
+		)
+	}
+
+	return string(data), nil
+}
+
+// Scan implements the sql.Scanner interface for database retrieval.
+// It accepts string or []byte values containing JSON and validates them as MinValue.
+func (mv *MinValue) Scan(src interface{}) error {
+	if src == nil {
+		*mv = ZeroMinValue
+		return nil
+	}
+
+	var data []byte
+	switch v := src.(type) {
+	case string:
+		data = []byte(v)
+	case []byte:
+		data = v
+	default:
+		return fault.New(
+			"unsupported scan type for MinValue",
+			fault.WithCode(fault.Invalid),
+			fault.WithContext("received_type", fmt.Sprintf("%T", src)),
+		)
+	}
+
+	if err := mv.UnmarshalJSON(data); err != nil {
+		return err
+	}
+
 	return nil
 }

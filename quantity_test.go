@@ -33,7 +33,7 @@ func (s *QuantitySuite) TestNewQuantity() {
 	s.Run("should create quantity with default precision", func() {
 		q, err := wisp.NewQuantity(1.575, UnitKG)
 		s.Require().NoError(err)
-		s.Equal(int64(1575), q.Value())
+		s.Equal(int64(1575), q.IntValue())
 		s.Equal(3, q.Precision())
 		s.Equal(UnitKG, q.Unit())
 	})
@@ -41,7 +41,7 @@ func (s *QuantitySuite) TestNewQuantity() {
 	s.Run("should create quantity with explicit precision", func() {
 		q, err := wisp.NewQuantityWithPrecision(10, UnitUN, 0)
 		s.Require().NoError(err)
-		s.Equal(int64(10), q.Value())
+		s.Equal(int64(10), q.IntValue())
 		s.Equal(0, q.Precision())
 	})
 
@@ -60,7 +60,7 @@ func (s *QuantitySuite) TestQuantity_Add() {
 	s.Run("should add quantities with same unit and precision", func() {
 		result, err := q1.Add(q2)
 		s.Require().NoError(err)
-		s.Equal(int64(1300), result.Value()) // 1050 + 250
+		s.Equal(int64(1300), result.IntValue()) // 1050 + 250
 		s.InDelta(13.0, result.Float64(), 0.001)
 	})
 
@@ -97,7 +97,7 @@ func (s *QuantitySuite) TestQuantity_JSONMarshaling() {
 		var unmarshaledQ wisp.Quantity
 		err = json.Unmarshal(data, &unmarshaledQ)
 		s.Require().NoError(err)
-		s.Equal(q.Value(), unmarshaledQ.Value())
+		s.Equal(q.IntValue(), unmarshaledQ.IntValue())
 		s.Equal(q.Unit(), unmarshaledQ.Unit())
 		s.Equal(q.Precision(), unmarshaledQ.Precision())
 	})

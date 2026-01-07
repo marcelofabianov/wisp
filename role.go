@@ -1,6 +1,8 @@
 package wisp
 
 import (
+	"database/sql/driver"
+	"fmt"
 	"strings"
 
 	"github.com/marcelofabianov/fault"
@@ -78,4 +80,44 @@ func (r Role) IsValid() bool {
 // IsZero returns true if the Role is the zero value.
 func (r Role) IsZero() bool {
 	return r == EmptyRole
+}
+
+// Value implements the driver.Valuer interface for database storage.
+// It returns the role as a string or nil if it's the zero value.
+func (r Role) Value() (driver.Value, error) {
+	if r.IsZero() {
+		return nil, nil
+	}
+	return r.String(), nil
+}
+
+// Scan implements the sql.Scanner interface for database retrieval.
+// It accepts string or []byte values and validates them as a Role.
+func (r *Role) Scan(src interface{}) error {
+	if src == nil {
+		*r = EmptyRole
+		return nil
+	}
+
+	var s string
+	switch v := src.(type) {
+	case string:
+		s = v
+	case []byte:
+		s = string(v)
+	default:
+		return fault.New(
+			"unsupported scan type for Role",
+			fault.WithCode(fault.Invalid),
+			fault.WithContext("received_type", fmt.Sprintf("%T", src)),
+		)
+	}
+
+	role, err := NewRole(s)
+	if err != nil {
+		return err
+	}
+
+	*r = role
+	return nil
 }

@@ -1,6 +1,7 @@
 package wisp
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 
@@ -234,6 +235,53 @@ func (m *Money) UnmarshalJSON(data []byte) error {
 
 	m.amount = dto.Amount
 	m.currency = dto.Currency
+
+	return nil
+}
+
+// Value implements the driver.Valuer interface for database storage.
+// It returns the Money as a JSON string or nil if it's the zero value.
+func (m Money) Value() (driver.Value, error) {
+	if m.IsZero() {
+		return nil, nil
+	}
+
+	data, err := m.MarshalJSON()
+	if err != nil {
+		return nil, fault.Wrap(err,
+			"failed to marshal money for database storage",
+			fault.WithCode(fault.Internal),
+		)
+	}
+
+	return string(data), nil
+}
+
+// Scan implements the sql.Scanner interface for database retrieval.
+// It accepts string or []byte values containing JSON and validates them as Money.
+func (m *Money) Scan(src interface{}) error {
+	if src == nil {
+		*m = ZeroMoney
+		return nil
+	}
+
+	var data []byte
+	switch v := src.(type) {
+	case string:
+		data = []byte(v)
+	case []byte:
+		data = v
+	default:
+		return fault.New(
+			"unsupported scan type for Money",
+			fault.WithCode(fault.Invalid),
+			fault.WithContext("received_type", fmt.Sprintf("%T", src)),
+		)
+	}
+
+	if err := m.UnmarshalJSON(data); err != nil {
+		return err
+	}
 
 	return nil
 }

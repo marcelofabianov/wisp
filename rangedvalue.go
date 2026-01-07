@@ -1,7 +1,9 @@
 package wisp
 
 import (
+	"database/sql/driver"
 	"encoding/json"
+	"fmt"
 
 	"github.com/marcelofabianov/fault"
 )
@@ -131,5 +133,52 @@ func (rv *RangedValue) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*rv = newRv
+	return nil
+}
+
+// Value implements the driver.Valuer interface for database storage.
+// It returns the RangedValue as a JSON string or nil if it's the zero value.
+func (rv RangedValue) Value() (driver.Value, error) {
+	if rv.current == 0 && rv.min == 0 && rv.max == 0 {
+		return nil, nil
+	}
+
+	data, err := rv.MarshalJSON()
+	if err != nil {
+		return nil, fault.Wrap(err,
+			"failed to marshal ranged value for database storage",
+			fault.WithCode(fault.Internal),
+		)
+	}
+
+	return string(data), nil
+}
+
+// Scan implements the sql.Scanner interface for database retrieval.
+// It accepts string or []byte values containing JSON and validates them as RangedValue.
+func (rv *RangedValue) Scan(src interface{}) error {
+	if src == nil {
+		*rv = ZeroRangedValue
+		return nil
+	}
+
+	var data []byte
+	switch v := src.(type) {
+	case string:
+		data = []byte(v)
+	case []byte:
+		data = v
+	default:
+		return fault.New(
+			"unsupported scan type for RangedValue",
+			fault.WithCode(fault.Invalid),
+			fault.WithContext("received_type", fmt.Sprintf("%T", src)),
+		)
+	}
+
+	if err := rv.UnmarshalJSON(data); err != nil {
+		return err
+	}
+
 	return nil
 }

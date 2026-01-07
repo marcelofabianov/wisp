@@ -1,6 +1,8 @@
 package wisp
 
 import (
+	"database/sql/driver"
+	"fmt"
 	"strings"
 
 	"github.com/marcelofabianov/fault"
@@ -75,4 +77,44 @@ func (s Status) IsValid() bool {
 // IsZero returns true if the Status is the zero value.
 func (s Status) IsZero() bool {
 	return s == EmptyStatus
+}
+
+// Value implements the driver.Valuer interface for database storage.
+// It returns the status as a string or nil if it's the zero value.
+func (s Status) Value() (driver.Value, error) {
+	if s.IsZero() {
+		return nil, nil
+	}
+	return s.String(), nil
+}
+
+// Scan implements the sql.Scanner interface for database retrieval.
+// It accepts string or []byte values and validates them as a Status.
+func (s *Status) Scan(src interface{}) error {
+	if src == nil {
+		*s = EmptyStatus
+		return nil
+	}
+
+	var str string
+	switch v := src.(type) {
+	case string:
+		str = v
+	case []byte:
+		str = string(v)
+	default:
+		return fault.New(
+			"unsupported scan type for Status",
+			fault.WithCode(fault.Invalid),
+			fault.WithContext("received_type", fmt.Sprintf("%T", src)),
+		)
+	}
+
+	status, err := NewStatus(str)
+	if err != nil {
+		return err
+	}
+
+	*s = status
+	return nil
 }

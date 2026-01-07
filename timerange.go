@@ -1,6 +1,7 @@
 package wisp
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 
@@ -102,5 +103,52 @@ func (tr *TimeRange) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*tr = timeRange
+	return nil
+}
+
+// Value implements the driver.Valuer interface for database storage.
+// It returns the TimeRange as a JSON string or nil if it's the zero value.
+func (tr TimeRange) Value() (driver.Value, error) {
+	if tr.IsZero() {
+		return nil, nil
+	}
+
+	data, err := tr.MarshalJSON()
+	if err != nil {
+		return nil, fault.Wrap(err,
+			"failed to marshal time range for database storage",
+			fault.WithCode(fault.Internal),
+		)
+	}
+
+	return string(data), nil
+}
+
+// Scan implements the sql.Scanner interface for database retrieval.
+// It accepts string or []byte values containing JSON and validates them as TimeRange.
+func (tr *TimeRange) Scan(src interface{}) error {
+	if src == nil {
+		*tr = ZeroTimeRange
+		return nil
+	}
+
+	var data []byte
+	switch v := src.(type) {
+	case string:
+		data = []byte(v)
+	case []byte:
+		data = v
+	default:
+		return fault.New(
+			"unsupported scan type for TimeRange",
+			fault.WithCode(fault.Invalid),
+			fault.WithContext("received_type", fmt.Sprintf("%T", src)),
+		)
+	}
+
+	if err := tr.UnmarshalJSON(data); err != nil {
+		return err
+	}
+
 	return nil
 }

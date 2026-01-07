@@ -1,6 +1,7 @@
 package wisp
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -79,8 +80,8 @@ func NewQuantityWithPrecision(value float64, unit Unit, precision int) (Quantity
 	return newQuantity(value, unit, precision)
 }
 
-// Value returns the scaled integer value of the quantity.
-func (q Quantity) Value() int64 {
+// IntValue returns the scaled integer value of the quantity.
+func (q Quantity) IntValue() int64 {
 	return q.value
 }
 
@@ -182,5 +183,52 @@ func (q *Quantity) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*q = qty
+	return nil
+}
+
+// Value implements the driver.Valuer interface for database storage.
+// It returns the Quantity as a JSON string or nil if it's the zero value.
+func (q Quantity) Value() (driver.Value, error) {
+	if q.IsZero() {
+		return nil, nil
+	}
+
+	data, err := q.MarshalJSON()
+	if err != nil {
+		return nil, fault.Wrap(err,
+			"failed to marshal quantity for database storage",
+			fault.WithCode(fault.Internal),
+		)
+	}
+
+	return string(data), nil
+}
+
+// Scan implements the sql.Scanner interface for database retrieval.
+// It accepts string or []byte values containing JSON and validates them as Quantity.
+func (q *Quantity) Scan(src interface{}) error {
+	if src == nil {
+		*q = Quantity{}
+		return nil
+	}
+
+	var data []byte
+	switch v := src.(type) {
+	case string:
+		data = []byte(v)
+	case []byte:
+		data = v
+	default:
+		return fault.New(
+			"unsupported scan type for Quantity",
+			fault.WithCode(fault.Invalid),
+			fault.WithContext("received_type", fmt.Sprintf("%T", src)),
+		)
+	}
+
+	if err := q.UnmarshalJSON(data); err != nil {
+		return err
+	}
+
 	return nil
 }

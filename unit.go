@@ -1,6 +1,12 @@
 package wisp
 
-import "strings"
+import (
+	"database/sql/driver"
+	"fmt"
+	"strings"
+
+	"github.com/marcelofabianov/fault"
+)
 
 // Unit is a value object representing a generic unit of measure (e.g., "BOX", "KG", "LITER").
 // It provides a flexible way to define and validate custom units for use with the Quantity type.
@@ -44,4 +50,39 @@ func (u Unit) String() string {
 func (u Unit) IsValid() bool {
 	_, ok := validUnits[u]
 	return ok
+}
+
+// Value implements the driver.Valuer interface for database storage.
+// It returns the unit as a string or nil if it's empty.
+func (u Unit) Value() (driver.Value, error) {
+	if u == "" {
+		return nil, nil
+	}
+	return u.String(), nil
+}
+
+// Scan implements the sql.Scanner interface for database retrieval.
+// It accepts string or []byte values and validates them as a Unit.
+func (u *Unit) Scan(src interface{}) error {
+	if src == nil {
+		*u = ""
+		return nil
+	}
+
+	var s string
+	switch v := src.(type) {
+	case string:
+		s = v
+	case []byte:
+		s = string(v)
+	default:
+		return fault.New(
+			"unsupported scan type for Unit",
+			fault.WithCode(fault.Invalid),
+			fault.WithContext("received_type", fmt.Sprintf("%T", src)),
+		)
+	}
+
+	*u = Unit(strings.ToUpper(strings.TrimSpace(s)))
+	return nil
 }

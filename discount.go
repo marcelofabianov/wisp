@@ -1,7 +1,9 @@
 package wisp
 
 import (
+	"database/sql/driver"
 	"encoding/json"
+	"fmt"
 
 	"github.com/marcelofabianov/fault"
 )
@@ -184,5 +186,52 @@ func (d *Discount) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*d = newDiscount
+	return nil
+}
+
+// Value implements the driver.Valuer interface for database storage.
+// It returns the Discount as a JSON string or nil if it's the zero value.
+func (d Discount) Value() (driver.Value, error) {
+	if d.IsZero() {
+		return nil, nil
+	}
+
+	data, err := d.MarshalJSON()
+	if err != nil {
+		return nil, fault.Wrap(err,
+			"failed to marshal discount for database storage",
+			fault.WithCode(fault.Internal),
+		)
+	}
+
+	return string(data), nil
+}
+
+// Scan implements the sql.Scanner interface for database retrieval.
+// It accepts string or []byte values containing JSON and validates them as Discount.
+func (d *Discount) Scan(src interface{}) error {
+	if src == nil {
+		*d = ZeroDiscount
+		return nil
+	}
+
+	var data []byte
+	switch v := src.(type) {
+	case string:
+		data = []byte(v)
+	case []byte:
+		data = v
+	default:
+		return fault.New(
+			"unsupported scan type for Discount",
+			fault.WithCode(fault.Invalid),
+			fault.WithContext("received_type", fmt.Sprintf("%T", src)),
+		)
+	}
+
+	if err := d.UnmarshalJSON(data); err != nil {
+		return err
+	}
+
 	return nil
 }
